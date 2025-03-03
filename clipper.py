@@ -275,7 +275,6 @@ def get_keyframes(video_file):
 def create_clips(video_file, points, keyframes, prefix="clip", buffer=1):
     segment_files = []
     file_type = video_file.split(".")[-1]
-    # Without doing some re-encoding, the start of clips get messed up due to not matching a keyframe
     for i, (start, end) in enumerate(points):
         start = max(0, start - buffer)
         end += buffer
