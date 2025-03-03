@@ -53,6 +53,11 @@ argparser.add_argument(
     help="seconds from the start of the video to start extracting clips",
 )
 argparser.add_argument(
+    "--reverse-clips",
+    action="store_true",
+    help="reverse the order of the clips in the compiled video, useful for top-10 style videos.",
+)
+argparser.add_argument(
     "--delta",
     type=float,
     default=0.2,
@@ -85,13 +90,14 @@ def main():
             points_df = points_df.head(args.nclips)
 
         points_df = points_df.round(2)
+        points_df.index.name = "point"
 
         # Print and optionally write out the data
         print()
         print("Extracted points:")
-        print(points_df.to_markdown())
+        print(points_df.to_markdown(index=True))
         if args.outcsv:
-            points_df.to_csv(f"{args.outname}.csv", index=True, index_label="point")
+            points_df.to_csv(f"{args.outname}.csv", index=True)
         print()
 
         # Create clips and a combined video
@@ -106,6 +112,8 @@ def main():
                 prefix=args.outname,
                 buffer=args.buffer,
             )
+            if args.reverse_clips:
+                segment_files = segment_files[::-1]
             concat_clips(segment_files, f"{args.outname}.mp4")
             print(f"Done! Created {len(segment_files)} video clips in {round(time.time()-st)}s")
 
