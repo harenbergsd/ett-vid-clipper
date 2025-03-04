@@ -38,7 +38,7 @@ Creating video clips ...
 Done! Created 379 video clips in 111s
 ```
 
-There are a number of options you can use to affect the bevhaior discussed below.
+There are a number of options you can use to affect the behavior discussed below.
 
 ## How to use it
 
@@ -79,7 +79,7 @@ This script finds clips based on the sound of a ball hitting a paddle. It uses [
 
 Once the timestamps are collected for every paddle hit, groups are determined based on gaps between the timestamps; i.e., sounds close together are part of the same point.
 
-Then, ffmpeg is used to clip the timepoints from the main video file. This process is very fast assuming you do not re-encode the video. Unfortunately, if your timestamp falls on an I-frame (and not a keyframe) you must re-encode the video else the video will not display properly. To prevent, this, we find all the keyframes of the video and sync the starting timestamp of our cuts to the keyframe. **If the video has sparse keyframes, this method would be problematic.**
+Then, ffmpeg is used to clip the timepoints from the main video file. This process is very fast assuming you do not re-encode the video. Unfortunately, if your timestamp falls on a P-frame (predicted frame, not a keyframe) you must re-encode the video else the video will not display properly. To prevent, this, we find all the keyframes of the video and sync the starting timestamp of our cuts to the keyframe. **If the video has sparse keyframes, this method would be problematic.**
 
 ## Other notes
 

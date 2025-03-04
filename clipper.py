@@ -104,7 +104,7 @@ def main():
         if args.outclips:
             print("Creating video clips ...")
             st = time.time()
-            keyframes = get_keyframes(args.video_file)  # can only cut on a keyframe with re-encoding
+            keyframes = get_keyframes(args.video_file)  # can only cut on a keyframe to avoid re-encoding
             segment_files = create_clips(
                 args.video_file,
                 points_df[["start", "end"]].values,
@@ -266,8 +266,11 @@ def get_keyframes(video_file):
     for line in result.stdout.split("\n"):
         if not "frame," in line:
             continue
-        time = line.split(",")[1]
-        keyframe_times.append(float(time))
+        try:
+            time = float(line.split(",")[1])
+            keyframe_times.append(time)
+        except:
+            pass
 
     return keyframe_times
 
@@ -299,6 +302,8 @@ def create_clips(video_file, points, keyframes, prefix="clip", buffer=1):
             str(end - start),  # Duration of the clip
             "-c",
             "copy",  # No re-encoding
+            "-avoid_negative_ts",
+            "make_zero",  # Forces correct trim
             segment_file,
         ]
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
