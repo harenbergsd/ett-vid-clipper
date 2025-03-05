@@ -1,4 +1,5 @@
 import os
+import av
 import glob
 import math
 import bisect
@@ -247,38 +248,12 @@ def concat_clips(files, output_file):
 
 
 def get_keyframes(video_file):
-    """Find the nearest keyframe before or equal to target_start using ffprobe."""
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-loglevel",
-            "error",
-            "-select_streams",
-            "v",
-            "-skip_frame",
-            "nokey",
-            "-show_frames",
-            "-show_entries",
-            "frame=pkt_pts_time",
-            "-of",
-            "csv",
-            video_file,
-        ],
-        capture_output=True,
-        text=True,
-    )
+    container = av.open(video_file)
 
-    keyframe_times = []
-    for line in result.stdout.split("\n"):
-        if not "frame," in line:
-            continue
-        try:
-            time = float(line.split(",")[1])
-            keyframe_times.append(time)
-        except:
-            pass
+    stream = container.streams.video[0]  # Get first video stream
+    keyframes = [float(packet.pts * stream.time_base) for packet in container.demux(stream) if packet.is_keyframe]
 
-    return keyframe_times
+    return keyframes
 
 
 def create_clips(video_file, points, keyframes, prefix="clip", buffer=1):
