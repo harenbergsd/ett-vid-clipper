@@ -64,10 +64,16 @@ argparser.add_argument(
     help="threshold for onset detection",
 )
 argparser.add_argument(
-    "--min_centroid",
+    "--min-centroid",
     type=float,
     default=1500,
     help="minimum spectral centroid for onset detection",
+)
+argparser.add_argument(
+    "--max-time-diff",
+    type=float,
+    default=1,
+    help="maximum time difference between subsequent onsets to group them into the same point (clip)",
 )
 
 
@@ -80,7 +86,7 @@ def main():
         timestamps = detect_onsets(
             audio_file, start_time=args.starttime, delta=args.delta, min_centroid=args.min_centroid
         )
-        points_df = get_points(timestamps)
+        points_df = get_points(timestamps, max_time_diff=args.max_time_diff)
 
         # Do any sorting or limiting of the clips
         if args.orderby == "duration":
@@ -207,8 +213,8 @@ def create_groups(timestamps, min_size=3, max_time_diff=1):
     return groups
 
 
-def get_points(timestamps):
-    groups = create_groups(timestamps)
+def get_points(timestamps, max_time_diff=1):
+    groups = create_groups(timestamps, max_time_diff=max_time_diff)
     df = pd.DataFrame(columns=["start", "end", "duration"])
     for i, group in enumerate(groups):
         start = group[0]
