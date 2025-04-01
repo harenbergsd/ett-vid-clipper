@@ -70,12 +70,14 @@ The `reverse-clips` option will reverse the order of clips in the full clip vide
 
 Other options to consider:
 * Use `--starttime <x>` to specify that you only want to gather clips after x seconds. For instance, you probably don't want to include any warmup before a match.
-* If things are not working well, try tweaking `--delta` and `--min_centroid` options. These affect the sound detection aspect.
+* If things are not working well, try tweaking the `--delta` options. These affect the sound detection aspect.
 
 
 ## How it Works
 
-This script finds clips based on the sound of a ball hitting a paddle. It uses [onset detection](librosa.onset.onset_detect), which works well for these sounds. Initially I had a recording of several paddle hits and tried using cross correlation to find other matches in the video, but this had had false positives and false negatives, though it might have worked OK. Onset detection ended up being simply and performed better. Due to memory constraints, this process needed to be performed in chunks.
+This script finds clips based on the sound of a ball hitting a paddle. It uses [onset detection](librosa.onset.onset_detect), which works well for these sounds. Initially I had a recording of several paddle hits and tried using cross correlation to find other matches in the video, but this had had false positives and false negatives, though it might have worked OK. Onset detection ended up being simply and performed better.
+
+Due to memory constraints, this process needed to be performed in chunks.
 
 Once the timestamps are collected for every paddle hit, groups are determined based on gaps between the timestamps; i.e., sounds close together are part of the same point.
 
@@ -83,6 +85,4 @@ Then, ffmpeg is used to clip the timepoints from the main video file. This proce
 
 ## Other notes
 
-* This method is not perfect (even though it works reasonably well). If the point ends with the ball still bouncing on the table, this method thinks the point is still happening. Or, if someone is hitting a ball in between matches, we'd pick that up as a point as well.
-* I would have liked to have a more accurate count of the number of shots, but I could not figure out how to do this cleanly in the amount of time I spent on this project. Without a more complex model, it's tough to disambiguate the ball hitting the paddle vs. the ball hitting the table vs. the ball hitting the floor.
 * Re-encoding the video kills the runtime. This is why we find the nearest keyframe to the starting timestamp of a clip. Generating video clips is free if you don't have to re-encode, but that requires having enough keyframes to where you don't need to do it. AI led me astray trying to re-encode small pieces and stitch them together, but that route never panned out :). I think it's basically re-encode everything or nothing, and everything will be painful.

@@ -1,1 +1,4 @@
 clips*.mp4
+__pycache__
+.vscode
+*.mp4
