@@ -66,12 +66,17 @@ argparser.add_argument(
     default=2,
     help="maximum time difference between subsequent onsets to group them into the same point (clip)",
 )
-
+argparser.add_argument(
+    "--delta",
+    type=float,
+    default=0.02,
+    help="delta for the onset detection",
+)
 
 def main():
     args = argparser.parse_args()
 
-    timestamps = detect_hits(args.video_file, start_time=args.starttime)
+    timestamps = detect_hits(args.video_file, start_time=args.starttime, delta=args.delta)
     points_df = get_points(timestamps, max_time_diff=args.max_time_diff)
 
     # Do any sorting or limiting of the clips
@@ -90,8 +95,8 @@ def main():
     print()
     print("Extracted points:")
     df = points_df.copy()
-    df["start"] = pd.to_datetime(df["start"], unit="s").dt.strftime("%M:%S")
-    df["end"] = pd.to_datetime(df["end"], unit="s").dt.strftime("%M:%S")
+    df["start"] = pd.to_datetime(df["start"], unit="s").dt.strftime("%H:%M:%S")
+    df["end"] = pd.to_datetime(df["end"], unit="s").dt.strftime("%H:%M:%S")
     print(df.to_markdown(index=True))
     if args.outcsv:
         df.to_csv(f"{args.outname}.csv", index=True)
@@ -120,7 +125,7 @@ def main():
         print(f"Done! Created {len(segment_files)} video clips in {round(time.time()-st)}s")
 
 
-def detect_hits(video_file, start_time=0, hop_length=32):
+def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
     hits = []
     model = pickle.load(open("model.pkl", "rb"))
     for iter, (sr, audio, offset, end) in enumerate(
@@ -128,11 +133,11 @@ def detect_hits(video_file, start_time=0, hop_length=32):
     ):
         dtoffset = datetime.timedelta(seconds=offset)
         dtend = datetime.timedelta(seconds=end)
-        # print(f"Processing chunk {iter+1}, start={dtoffset}, end={dtend} ... ", end="", flush=True)
+        print(f"Processing chunk {iter+1}, start={dtoffset}, end={dtend} ... ", end="", flush=True)
         st = time.time()
 
         # Detect onsets
-        onset_times = get_onsets(audio, sr, hop_length, delta=0.02)
+        onset_times = get_onsets(audio, sr, hop_length, delta=delta)
 
         # Classify onsets as paddle hits or not
         X = []
@@ -147,8 +152,6 @@ def detect_hits(video_file, start_time=0, hop_length=32):
 
         model_preds = model.predict(X)
         hits += [onset_times[i] + offset for i, pred in enumerate(model_preds) if pred == 1 and not i in invalid]
-        print([round(h, 2) for h in hits])
-        print([round(o, 2) for o in onset_times])
 
     return hits
 

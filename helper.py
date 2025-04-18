@@ -21,25 +21,6 @@ def get_onsets(audio, sr, hop_length, delta):
     return onset_times
 
 
-def get_onsets_delete(audio, sr, hop_length, delta=0.02):
-    # chunk audio to make onset detection more consistent
-    # onset_detection uses global statistics and affects results
-    total_duration = len(audio) / sr
-    nchunks = math.ceil(total_duration / 60)  # 60 second chunks
-    chunks = np.array_split(np.arange(0, len(audio)), nchunks)
-    chunks = [(c[0], c[-1] + 1) for c in chunks]
-
-    onset_times = []
-    for offset, end in chunks:
-        chunk = audio[offset:end]
-        onset_frames = librosa.onset.onset_detect(y=chunk, backtrack=True, hop_length=hop_length, delta=delta)
-        a = list(librosa.frames_to_time(onset_frames, sr=sr, hop_length=hop_length) + offset / sr)
-        # a = get_rms_times(chunk, sr, hop_length) + offset / sr
-        onset_times.extend(a)
-
-    return onset_times
-
-
 def features(audio, sr):
     n_fft = min(len(audio), 1024)
     if n_fft <= 0:
