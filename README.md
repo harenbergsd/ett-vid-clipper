@@ -1,6 +1,6 @@
 # ett-vid-clipper
 
-This code is used for automatically finding and extracting clips of [Eleven Table Tennis (ETT)](https://elevenvr.com/en/) points from a recording. Clips are extracted in a lossless manner using ffmpeg.
+This code is used for automatically finding and extracting clips of [Eleven Table Tennis (ETT)](https://elevenvr.com/en/) points from a recording. Clips are extracted in a lossless manner using ffmpeg. It works by detecting paddle hit sounds and grouping sounds that are close together into a "point".
 
 You can see example output in `data/wlad_vs_natping_output.mp4`, which was created by running `python clipper.py data/wlad_vs_natping.mp4 --outclips`. In this case, the script is removing all down-time where action does not occur (about 35% of the video).
 
@@ -39,6 +39,13 @@ The `reverse-clips` option will reverse the order of clips in the full clip vide
 Other options to consider:
 * Use `--starttime <x>` to specify that you only want to gather clips after x seconds. For instance, you probably don't want to include any warmup before a match.
 * If things are not working well, try tweaking the `--delta` options. These affect the sound detection aspect.
+
+### Inconsistent Version Error
+
+If you get an error like:
+> InconsistentVersionWarning: Trying to unpickle estimator DecisionTreeClassifier from version 1.6.1 when using version 1.3.2.
+
+then you can rerun the training yourself to produce an updated `model.pkl` file. To do that, just run `python train.py`, it might take a few minutes.
 
 ## How it Works
 
