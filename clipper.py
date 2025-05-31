@@ -72,6 +72,14 @@ argparser.add_argument(
     default=0.02,
     help="delta for the onset detection",
 )
+argparser.add_argument(
+    "--skip-clips",
+    nargs="+",
+    type=int,
+    default=[],
+    help="list of clip indices to skip (e.g., 0 1 2 will skip the first three clips)",
+)
+
 
 def main():
     args = argparser.parse_args()
@@ -81,15 +89,21 @@ def main():
 
     # Do any sorting or limiting of the clips
     if args.orderby == "duration":
-        points_df = points_df.sort_values(by=["duration","shots"], ascending=False)
+        points_df = points_df.sort_values(by=["duration", "shots"], ascending=False)
     if args.orderby == "shots":
-        points_df = points_df.sort_values(by=["shots","duration"], ascending=False)
+        points_df = points_df.sort_values(
+            by=["shots", "duration"], ascending=[False, True]
+        )  # shorter duration means more exciting?
 
     if args.nclips:
-        points_df = points_df.head(args.nclips)
+        points_df = points_df.head(args.nclips + len(args.skip_clips))  # + skip clips
+    points_df = points_df.reset_index()
+    if len(args.skip_clips) > 0:
+        points_df = points_df.drop(index=args.skip_clips, errors="ignore")
+    points_df["point"] = points_df.index
 
     points_df = points_df.round(2)
-    points_df.index.name = "point"
+    points_df.index.name = "clip_id"
 
     # Print and optionally write out the data
     print()
@@ -129,7 +143,7 @@ def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
     hits = []
     model = pickle.load(open("model.pkl", "rb"))
     for iter, (sr, audio, offset, end) in enumerate(
-        extract_audio_from_video(video_file, start_time=start_time, chunk_size=600)
+        extract_audio_from_video(video_file, start_time=start_time, chunk_size=1000)
     ):
         dtoffset = datetime.timedelta(seconds=offset)
         dtend = datetime.timedelta(seconds=end)

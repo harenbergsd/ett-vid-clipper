@@ -7,6 +7,7 @@ import pickle
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+import xgboost as xgb
 from helper import *
 
 TRAIN_DATA_DIR = "data/training"
@@ -39,12 +40,13 @@ for f in paddle_hits:
         raise ValueError(f"File {f} not found in training data.")
 print("All files in labels.csv found in training data.")
 print(f"Positive cases: {AUGMENTATION_RANGE.size*len(paddle_hits)}. Positive labels: {sum(y)}.")
-if AUGMENTATION_RANGE.size*len(paddle_hits) != sum(y):
+if AUGMENTATION_RANGE.size * len(paddle_hits) != sum(y):
     raise ValueError("Positive label mismatch.")
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1234)
-
-model = RandomForestClassifier()
+# model = RandomForestClassifier(class_weight="balanced")
+scale_pos_weight = (len(y_train) - sum(y_train)) / sum(y_train)
+model = xgb.XGBClassifier(use_label_encoder=False, eval_metric="logloss", scale_pos_weight=scale_pos_weight)
 model.fit(X_train, y_train)
 
 # Make predictions on the test data
