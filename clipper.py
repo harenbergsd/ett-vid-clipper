@@ -100,10 +100,10 @@ def main():
     points_df = points_df.reset_index()
     if len(args.skip_clips) > 0:
         points_df = points_df.drop(index=args.skip_clips, errors="ignore")
-    points_df["point"] = points_df.index
 
     points_df = points_df.round(2)
     points_df.index.name = "clip_id"
+    points_df.rename(columns={"index": "point"}, inplace=True)
 
     # Print and optionally write out the data
     print()

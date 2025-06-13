@@ -4,7 +4,7 @@ This code is used for automatically finding and extracting clips of [Eleven Tabl
 
 You can see example output in `data/wlad_vs_natping_output.mp4`, which was created by running `python clipper.py data/wlad_vs_natping.mp4 --outclips`. In this case, the script is removing all down-time where action does not occur (about 35% of the video).
 
-**This will not work well for videos with commentary**. The model has not been trained on videos commentary and thus will not be able to detect sounds properly.
+**This will not work well for videos with commentary or mic audio**. The model has not been trained on videos commentary and thus will not be able to detect sounds properly.
 
 
 ## Overview
