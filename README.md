@@ -49,13 +49,15 @@ then you can rerun the training yourself to produce an updated `model.pkl` file.
 
 ## How it Works
 
-This script finds clips based on the sound of a ball hitting a paddle. It uses [onset detection](librosa.onset.onset_detect), to determine potential paddle hits, and then a model to classify the sounds as paddle hits or not.
+This script finds clips based on the sound of a ball hitting a paddle. It uses [onset detection](librosa.onset.onset_detect), to determine potential paddle hits, and then a model to classify the sounds as paddle hits or not. For example, if you look at a clip of the audio, you might detect onsets like the following and then classify each of these as a paddle hit or not.
+
+![image](./data/ex_waveform_onsets.png)
 
 Due to memory constraints, this process needed to be performed in chunks.
 
-Once the timestamps are collected for every paddle hit, groups are determined based on gaps between the timestamps; i.e., sounds close together are part of the same point.
+Once timestamps are collected for every paddle hit, groups are determined based on gaps between the timestamps; i.e., sounds close together are part of the same point.
 
-Then, ffmpeg is used to clip the timepoints from the main video file. This process is very fast assuming you do not re-encode the video. Unfortunately, if your timestamp falls on a P-frame (predicted frame, not a keyframe) you must re-encode the video else the video will not display properly. To prevent, this, we find all the keyframes of the video and sync the starting timestamp of our cuts to the keyframe. **If the video has sparse keyframes, this method would be problematic.**
+Then, ffmpeg is used to clip the time points from the main video file. This process is very fast assuming you do not re-encode the video. Unfortunately, if your timestamp falls on a P-frame (predicted frame, not a keyframe) you must re-encode the video else the video will not display properly. To prevent, this, we find all the keyframes of the video and sync the starting timestamp of our cuts to the keyframe. **If the video has sparse keyframes, this method would be problematic.**
 
 ### Model Training
 
