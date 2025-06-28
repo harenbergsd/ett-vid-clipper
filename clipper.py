@@ -83,63 +83,94 @@ argparser.add_argument(
 
 def main():
     args = argparser.parse_args()
+    run_clipper(
+        video_file=args.video_file,
+        buffer=args.buffer,
+        outcsv=args.outcsv,
+        outclips=args.outclips,
+        outname=args.outname,
+        orderby=args.orderby,
+        nclips=args.nclips,
+        starttime=args.starttime,
+        reverse_clips=args.reverse_clips,
+        max_time_diff=args.max_time_diff,
+        delta=args.delta,
+        skip_clips=args.skip_clips,
+        log_callback=print,
+    )
 
-    timestamps = detect_hits(args.video_file, start_time=args.starttime, delta=args.delta)
-    points_df = get_points(timestamps, max_time_diff=args.max_time_diff)
 
-    # Do any sorting or limiting of the clips
-    if args.orderby == "duration":
+def run_clipper(
+    video_file,
+    buffer=1.5,
+    outcsv=False,
+    outclips=False,
+    outname="clips",
+    orderby="chrono",
+    nclips=None,
+    starttime=0,
+    reverse_clips=False,
+    max_time_diff=2.5,
+    delta=0.02,
+    skip_clips=None,
+    log_callback=None,
+):
+    if skip_clips is None:
+        skip_clips = []
+    if log_callback is None:
+        log_callback = print
+    timestamps = detect_hits(video_file, start_time=starttime, delta=delta, log_callback=log_callback)
+    points_df = get_points(timestamps, max_time_diff=max_time_diff)
+    if orderby == "duration":
         points_df = points_df.sort_values(by=["duration", "shots"], ascending=False)
-    if args.orderby == "shots":
+    if orderby == "shots":
         points_df = points_df.sort_values(
             by=["shots", "duration"], ascending=[False, True]
-        )  # shorter duration means more exciting?
-
-    if args.nclips:
-        points_df = points_df.head(args.nclips + len(args.skip_clips))  # + skip clips
+        )
+    if nclips:
+        points_df = points_df.head(nclips + len(skip_clips))
     points_df = points_df.reset_index()
-    if len(args.skip_clips) > 0:
-        points_df = points_df.drop(index=args.skip_clips, errors="ignore")
-
+    if len(skip_clips) > 0:
+        points_df = points_df.drop(index=skip_clips, errors="ignore")
     points_df = points_df.round(2)
     points_df.index.name = "clip_id"
     points_df.rename(columns={"index": "point"}, inplace=True)
 
-    # Print and optionally write out the data
-    print()
-    print("Extracted points:")
+    # Format DataFrame for output/logging
     df = points_df.copy()
     df["start"] = pd.to_datetime(df["start"], unit="s").dt.strftime("%H:%M:%S")
     df["end"] = pd.to_datetime(df["end"], unit="s").dt.strftime("%H:%M:%S")
-    print(df.to_markdown(index=True))
-    if args.outcsv:
-        df.to_csv(f"{args.outname}.csv", index=True)
-    print()
+    log_callback("")
+    log_callback("Extracted points:")
+    log_callback(df.to_markdown(index=True))
+    if outcsv:
+        df.to_csv(f"{outname}.csv", index=True)
+    log_callback("")
 
-    # Create clips and a combined video
-    if args.outclips:
-        print("Creating video clips ...")
-        # Must clean up any existing files to avoid ffmpeg hanging
-        for f in glob.glob(f"{args.outname}_*.mp4") + [f"{args.outname}.mp4"]:
+    if outclips:
+        log_callback("Creating video clips ...")
+        for f in glob.glob(f"{outname}_*.mp4") + [f"{outname}.mp4"]:
             if os.path.exists(f):
                 os.remove(f)
-
         st = time.time()
-        keyframes = get_keyframes(args.video_file)  # can only cut on a keyframe to avoid re-encoding
+        keyframes = get_keyframes(video_file)
         segment_files = create_clips(
-            args.video_file,
+            video_file,
             points_df[["start", "end"]].values,
             keyframes,
-            prefix=args.outname,
-            buffer=args.buffer,
+            prefix=outname,
+            buffer=buffer,
         )
-        if args.reverse_clips:
+        if reverse_clips:
             segment_files = segment_files[::-1]
-        concat_clips(segment_files, f"{args.outname}.mp4")
-        print(f"Done! Created {len(segment_files)} video clips in {round(time.time()-st)}s")
+        concat_clips(segment_files, f"{outname}.mp4")
+        log_callback(f"Done! Created {len(segment_files)} video clips in {round(time.time()-st)}s")
+    return points_df
 
 
-def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
+def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02, log_callback=None):
+    if log_callback is None:
+        log_callback = print
     hits = []
     model = pickle.load(open("model.pkl", "rb"))
     for iter, (sr, audio, offset, end) in enumerate(
@@ -147,28 +178,21 @@ def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
     ):
         dtoffset = datetime.timedelta(seconds=offset)
         dtend = datetime.timedelta(seconds=end)
-        print(f"Processing chunk {iter+1}, start={dtoffset}, end={dtend} ... ", end="", flush=True)
+        log_callback(f"Processing chunk {iter+1}, start={dtoffset}, end={dtend} ... ")
         st = time.time()
-
-        # Detect onsets
         onset_times = get_onsets(audio, sr, hop_length, delta=delta)
-
-        # Classify onsets as paddle hits or not
         X = []
         invalid = set()
         for i, onset in enumerate(onset_times):
             clip = onset_clip(audio, sr, onset)
             feats = features(clip, sr)
-            if len(feats) != model.nfeatures:  # because we are chunking, this might happen?
+            if len(feats) != model.nfeatures:
                 invalid.add(i)
                 continue
             X.append(feats)
-
         model_preds = model.predict(X)
         hits += [onset_times[i] + offset for i, pred in enumerate(model_preds) if pred == 1 and not i in invalid]
-
-        print(f"completed in {round(time.time()-st)}s", flush=True)
-
+        log_callback(f"completed in {round(time.time()-st)}s")
     return hits
 
 
