@@ -56,11 +56,6 @@ argparser.add_argument(
     help="seconds from the start of the video to start extracting clips",
 )
 argparser.add_argument(
-    "--reverse-clips",
-    action="store_true",
-    help="reverse the order of the clips in the compiled video, useful for top-10 style videos.",
-)
-argparser.add_argument(
     "--max-time-diff",
     type=float,
     default=2.5,
@@ -78,6 +73,11 @@ argparser.add_argument(
     type=int,
     default=[],
     help="list of clip indices to skip (e.g., 0 1 2 will skip the first three clips)",
+)
+argparser.add_argument(
+    "--reverse-clips",
+    action="store_true",
+    help="reverse the order of the clips in the compiled video, useful for top-10 style videos.",
 )
 
 
@@ -123,10 +123,10 @@ def run_clipper(
     points_df = get_points(timestamps, max_time_diff=max_time_diff)
     if orderby == "duration":
         points_df = points_df.sort_values(by=["duration", "shots"], ascending=False)
-    if orderby == "shots":
-        points_df = points_df.sort_values(
-            by=["shots", "duration"], ascending=[False, True]
-        )
+    elif orderby == "shots":
+        points_df = points_df.sort_values(by=["shots", "duration"], ascending=[False, True])
+    elif orderby == "chrono":
+        points_df = points_df.sort_values(by=["start"], ascending=True)
     if nclips:
         points_df = points_df.head(nclips + len(skip_clips))
     points_df = points_df.reset_index()
