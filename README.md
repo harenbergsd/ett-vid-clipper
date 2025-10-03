@@ -6,8 +6,8 @@ You can see example output in `data/wlad_vs_natping_output.mp4`, which was creat
 
 **This will not work well for videos with commentary or mic audio**. The model has not been trained on videos commentary and thus will not be able to detect sounds properly.
 
-
 ## Overview
+
 You might use this script in a number ways, such as creating a video that removes all down-time from a recording. By default, it will find the points in the match and print their beginning and ending time points. This list can be saved to a csv file.
 
 Optionally, you can have it create video clips of points for you. It will produce individual clips of every point, as well as a single video file containing all clips.
@@ -18,31 +18,71 @@ Overall, this should run pretty fast on modest hardware. For instance, I ran thi
 
 There are a number of options you can use to affect the behavior discussed below.
 
+## Installation
+
+### Python Dependencies
+
+Install the required Python packages using pip:
+
+```bash
+pip install -r requirements.txt
+```
+
+### System Dependencies
+
+You also need to install ffmpeg, which is used for video processing:
+
+**Windows:**
+
+- Download ffmpeg from https://ffmpeg.org/download.html#build-windows
+- Extract to a folder and add the `bin` directory to your PATH environment variable
+
+**macOS:**
+
+```bash
+brew install ffmpeg
+```
+
+**Ubuntu/Debian:**
+
+```bash
+sudo apt install ffmpeg
+```
+
+**Other Linux distributions:**
+Install ffmpeg using your distribution's package manager.
+
 ## How to use it
 
 To get help and see a description of the commands, run:
+
 ```python
 python clipper.py -h
 ```
 
 To create a full video of all points without the dead time in-between points, run:
+
 ```python
 python clipper.py <video-file> --outclips
 ```
 
 To get a list of the top-10 points (by number of shots) and produce video clips of them, run:
+
 ```python
 python clipper.py <video-file> --outclips --nclips 10 --orderby shots --reverse-clips
 ```
+
 The `reverse-clips` option will reverse the order of clips in the full clip video. So, for instance, you will see the longest duration (best clip) last rather than first.
 
 Other options to consider:
-* Use `--starttime <x>` to specify that you only want to gather clips after x seconds. For instance, you probably don't want to include any warmup before a match.
-* If things are not working well, try tweaking the `--delta` options. These affect the sound detection aspect.
+
+- Use `--starttime <x>` to specify that you only want to gather clips after x seconds. For instance, you probably don't want to include any warmup before a match.
+- If things are not working well, try tweaking the `--delta` options. These affect the sound detection aspect.
 
 ### Inconsistent Version Error
 
 If you get an error like:
+
 > InconsistentVersionWarning: Trying to unpickle estimator DecisionTreeClassifier from version 1.6.1 when using version 1.3.2.
 
 then you can rerun the training yourself to produce an updated `model.pkl` file. To do that, just run `python train.py`, it might take a few minutes.
@@ -69,4 +109,4 @@ Next, you run `train.py` to train the model, which will produce the `model.pkl` 
 
 ## Other notes
 
-* Re-encoding the video kills the runtime. This is why we find the nearest keyframe to the starting timestamp of a clip. Generating video clips is free if you don't have to re-encode, but that requires having enough keyframes to where you don't need to do it. AI led me astray trying to re-encode small pieces and stitch them together, but that route never panned out :). I think it's basically re-encode everything or nothing, and everything will be painful.
+- Re-encoding the video kills the runtime. This is why we find the nearest keyframe to the starting timestamp of a clip. Generating video clips is free if you don't have to re-encode, but that requires having enough keyframes to where you don't need to do it. AI led me astray trying to re-encode small pieces and stitch them together, but that route never panned out :). I think it's basically re-encode everything or nothing, and everything will be painful.
