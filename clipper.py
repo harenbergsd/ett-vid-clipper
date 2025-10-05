@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import time
 import datetime
+from pathlib import Path
 from helper import *
 
 TMP_CONCAT_FILE = "__tmp_concat__.txt"
@@ -141,7 +142,8 @@ def main():
 
 def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
     hits = []
-    model = pickle.load(open("model.pkl", "rb"))
+    model_path = str(Path(__file__).parent / "model.pkl")
+    model = pickle.load(open(model_path, "rb"))
     for iter, (sr, audio, offset, end) in enumerate(
         extract_audio_from_video(video_file, start_time=start_time, chunk_size=1000)
     ):
