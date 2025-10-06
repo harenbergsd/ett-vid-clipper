@@ -143,7 +143,20 @@ def main():
 def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
     hits = []
     model_path = str(Path(__file__).parent / "model.pkl")
-    model = pickle.load(open(model_path, "rb"))
+    backup_model_path = str(Path(__file__).parent / "model_orig.pkl")
+
+    # Try to load model.pkl first, fallback to model_orig.pkl if it doesn't exist
+    try:
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+    except FileNotFoundError:
+        print(f"model.pkl not found, trying model_orig.pkl...")
+        try:
+            with open(backup_model_path, "rb") as f:
+                model = pickle.load(f)
+            print(f"Successfully loaded model from model_orig.pkl")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Neither model.pkl nor model_orig.pkl found in {Path(__file__).parent}")
     for iter, (sr, audio, offset, end) in enumerate(
         extract_audio_from_video(video_file, start_time=start_time, chunk_size=1000)
     ):
