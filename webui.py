@@ -20,6 +20,74 @@ def run_command(cmd: list) -> Tuple[str, str, int]:
     except Exception as e:
         return "", f"Error running command: {str(e)}", 1
 
+def generate_command_string(
+    video_file,
+    buffer_time,
+    output_csv,
+    create_clips,
+    output_prefix,
+    sort_by,
+    max_clips,
+    start_time,
+    skip_clips_text,
+    reverse_order,
+    max_time_diff,
+    detection_sensitivity
+) -> str:
+    """
+    Generate the command string that will be executed.
+    
+    Returns:
+        str: Formatted command string
+    """
+    if not video_file:
+        return "No video file provided"
+    
+    # Build command with all parameters
+    cmd = ["uv", "run", "clipper.py", video_file]
+    
+    # Add parameters based on values
+    if buffer_time != 1.5:  # Only add if different from default
+        cmd.extend(["--buffer", str(buffer_time)])
+    
+    if output_csv:
+        cmd.append("--outcsv")
+    
+    if create_clips:
+        cmd.append("--outclips")
+    
+    if output_prefix != "clips":
+        cmd.extend(["--outname", output_prefix])
+    
+    if sort_by != "chrono":
+        cmd.extend(["--orderby", sort_by])
+    
+    if max_clips and max_clips > 0:
+        cmd.extend(["--nclips", str(max_clips)])
+    
+    if start_time != 0:
+        cmd.extend(["--starttime", str(start_time)])
+    
+    # Parse skip clips from text input
+    if skip_clips_text and skip_clips_text.strip():
+        try:
+            skip_clips = [int(x.strip()) for x in skip_clips_text.split(",") if x.strip()]
+            if skip_clips:
+                cmd.extend(["--skip-clips"] + [str(x) for x in skip_clips])
+        except ValueError:
+            return "Error: Skip clips must be comma-separated integers"
+    
+    if reverse_order:
+        cmd.append("--reverse-clips")
+    
+    if max_time_diff != 2.5:
+        cmd.extend(["--max-time-diff", str(max_time_diff)])
+    
+    if detection_sensitivity != 0.02:
+        cmd.extend(["--delta", str(detection_sensitivity)])
+    
+    return " ".join(cmd)
+
 def process_video(
     video_file,
     buffer_time,
@@ -253,23 +321,46 @@ with gr.Blocks(title="ETT Video Clipper", theme=gr.themes.Soft()) as interface:
             generate_btn = gr.Button("🚀 Generate Clips", variant="primary", size="lg")
 
         with gr.Column(scale=3):
-            gr.Markdown("### 📋 Command Output & Progress")
+            gr.Markdown("### 📋 Command Preview & Output")
+            
+            # Command Preview Section
+            gr.Markdown("#### 🔍 Command Line Preview")
+            command_preview = gr.Textbox(
+                label="Command to be Executed",
+                lines=3,
+                max_lines=5,
+                show_copy_button=True,
+                interactive=False,
+                info="Preview of the command that will be executed"
+            )
+            
+            gr.Markdown("#### 📊 Processing Output")
             output_text = gr.Textbox(
                 label="Command Output",
-                lines=25,
+                lines=20,
                 max_lines=50,
                 show_copy_button=True,
                 info="View the command execution results here"
             )
 
-    # Event handler
+    # Event handlers
+    inputs_list = [
+        video_input, buffer_time, output_csv, create_clips, output_prefix,
+        sort_by, max_clips, start_time, skip_clips_text, reverse_order,
+        max_time_diff, detection_sensitivity
+    ]
+    
+    # Show command preview immediately when button is clicked
+    generate_btn.click(
+        fn=generate_command_string,
+        inputs=inputs_list,
+        outputs=[command_preview]
+    )
+    
+    # Then execute the command and show output
     generate_btn.click(
         fn=gradio_interface,
-        inputs=[
-            video_input, buffer_time, output_csv, create_clips, output_prefix,
-            sort_by, max_clips, start_time, skip_clips_text, reverse_order,
-            max_time_diff, detection_sensitivity
-        ],
+        inputs=inputs_list,
         outputs=[output_text]
     )
 
