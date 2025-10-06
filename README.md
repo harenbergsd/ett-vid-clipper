@@ -79,6 +79,42 @@ Other options to consider:
 - Use `--starttime <x>` to specify that you only want to gather clips after x seconds. For instance, you probably don't want to include any warmup before a match.
 - If things are not working well, try tweaking the `--delta` options. These affect the sound detection aspect.
 
+## Web Interface
+
+A Gradio-based web interface is available for easier video processing through a user-friendly GUI.
+
+### Features
+
+- 🎥 Upload MP4 video files through a web interface
+- 🚀 One-click processing with real-time progress display
+- 📋 View command output and processing status
+- 🎯 Automatic clip extraction and compilation
+
+### Running the Web Interface
+
+From the project root directory, run:
+
+```bash
+python webui.py
+```
+
+Or using uv:
+
+```bash
+uv run webui.py
+```
+
+The web interface will start and be accessible at `http://localhost:7860`.
+
+### Usage
+
+1. **Upload Video**: Click on the video upload area or drag and drop an MP4 file
+2. **Generate Clips**: Click the "🚀 Generate Clips" button to start processing
+3. **View Output**: Watch the real-time command output in the text area
+4. **Access Results**: Generated clips will be saved in the current working directory as:
+   - `clips_0.mp4`, `clips_1.mp4`, etc. (individual clips)
+   - `clips.mp4` (compiled video of all clips)
+
 ### Inconsistent Version Error
 
 If you get an error like:
