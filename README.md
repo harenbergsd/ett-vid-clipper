@@ -111,9 +111,10 @@ The web interface will start and be accessible at `http://localhost:7860`.
 1. **Upload Video**: Click on the video upload area or drag and drop an MP4 file
 2. **Generate Clips**: Click the "🚀 Generate Clips" button to start processing
 3. **View Output**: Watch the real-time command output in the text area
-4. **Access Results**: Generated clips will be saved in the current working directory as:
-   - `clips_0.mp4`, `clips_1.mp4`, etc. (individual clips)
-   - `clips.mp4` (compiled video of all clips)
+4. **Access Results**: Generated clips will be saved in the `output/` folder (created automatically) as:
+   - `output/clips_0.mp4`, `output/clips_1.mp4`, etc. (individual clips)
+   - `output/clips.mp4` (compiled video of all clips)
+   - `output/clips.csv` (timestamps data, if CSV export is enabled)
 
 ### Inconsistent Version Error
 

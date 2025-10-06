@@ -14,6 +14,8 @@ import datetime
 from pathlib import Path
 from helper import *
 
+# Define output directory at the same level as this script
+OUTPUT_DIR = Path(__file__).parent / "output"
 TMP_CONCAT_FILE = "__tmp_concat__.txt"
 
 argparser = argparse.ArgumentParser(description="Extract clips of ETT points from video based on sounds.")
@@ -84,6 +86,9 @@ argparser.add_argument(
 
 def main():
     args = argparser.parse_args()
+    
+    # Create output directory if it doesn't exist
+    OUTPUT_DIR.mkdir(exist_ok=True)
 
     timestamps = detect_hits(args.video_file, start_time=args.starttime, delta=args.delta)
     points_df = get_points(timestamps, max_time_diff=args.max_time_diff)
@@ -114,14 +119,16 @@ def main():
     df["end"] = pd.to_datetime(df["end"], unit="s").dt.strftime("%H:%M:%S")
     print(df.to_markdown(index=True))
     if args.outcsv:
-        df.to_csv(f"{args.outname}.csv", index=True)
+        csv_path = OUTPUT_DIR / f"{args.outname}.csv"
+        df.to_csv(csv_path, index=True)
+        print(f"CSV saved to: {csv_path}")
     print()
 
     # Create clips and a combined video
     if args.outclips:
         print("Creating video clips ...")
         # Must clean up any existing files to avoid ffmpeg hanging
-        for f in glob.glob(f"{args.outname}_*.mp4") + [f"{args.outname}.mp4"]:
+        for f in glob.glob(str(OUTPUT_DIR / f"{args.outname}_*.mp4")) + [str(OUTPUT_DIR / f"{args.outname}.mp4")]:
             if os.path.exists(f):
                 os.remove(f)
 
@@ -136,8 +143,10 @@ def main():
         )
         if args.reverse_clips:
             segment_files = segment_files[::-1]
-        concat_clips(segment_files, f"{args.outname}.mp4")
+        combined_video_path = OUTPUT_DIR / f"{args.outname}.mp4"
+        concat_clips(segment_files, str(combined_video_path))
         print(f"Done! Created {len(segment_files)} video clips in {round(time.time()-st)}s")
+        print(f"Combined video saved to: {combined_video_path}")
 
 
 def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
@@ -265,7 +274,7 @@ def create_clips(video_file, points, keyframes, prefix="clip", buffer=1):
     for i, (start, end) in enumerate(points):
         start = max(0, start - buffer)
         end += buffer
-        segment_file = f"{prefix}_{i}.{file_type}"
+        segment_file = OUTPUT_DIR / f"{prefix}_{i}.{file_type}"
 
         # Get closest keyframe before start
         # Otherwise, would need to re-encode, which is very slow
@@ -288,10 +297,10 @@ def create_clips(video_file, points, keyframes, prefix="clip", buffer=1):
             "copy",  # No re-encoding
             "-avoid_negative_ts",
             "make_zero",  # Forces correct trim
-            segment_file,
+            str(segment_file),
         ]
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        segment_files.append(segment_file)
+        segment_files.append(str(segment_file))
 
     return segment_files
 
