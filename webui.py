@@ -229,6 +229,10 @@ with gr.Blocks(title="ETT Video Clipper", theme=gr.themes.Soft()) as interface:
                 label="Upload MP4 Video",
                 sources=["upload"],
             )
+            gr.Markdown("""
+            **💡 Video Preview Note:** Some MP4 files may show "video not playable" in the preview due to browser codec limitations.
+            This doesn't affect clip generation - the processing will work normally with VLC-compatible files.
+            """)
 
             # Basic Output Settings
             gr.Markdown("### 📊 Basic Output Settings")
