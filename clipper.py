@@ -82,6 +82,12 @@ argparser.add_argument(
     default=[],
     help="list of clip indices to skip (e.g., 0 1 2 will skip the first three clips)",
 )
+argparser.add_argument(
+    "--skip-clips-min-shots",
+    type=int,
+    default=0,
+    help="minimum number of shots required for a clip to be included (clips with fewer shots will be filtered out)",
+)
 
 
 def main():
@@ -106,6 +112,14 @@ def main():
     points_df = points_df.reset_index()
     if len(args.skip_clips) > 0:
         points_df = points_df.drop(index=args.skip_clips, errors="ignore")
+    
+    # Filter out clips with fewer than the minimum required shots
+    if args.skip_clips_min_shots > 0:
+        initial_count = len(points_df)
+        points_df = points_df[points_df["shots"] >= args.skip_clips_min_shots]
+        filtered_count = initial_count - len(points_df)
+        if filtered_count > 0:
+            print(f"Filtered out {filtered_count} clips with fewer than {args.skip_clips_min_shots} shots")
 
     points_df = points_df.round(2)
     points_df.index.name = "clip_id"

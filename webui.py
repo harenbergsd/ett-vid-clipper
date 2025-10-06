@@ -30,6 +30,7 @@ def generate_command_string(
     max_clips,
     start_time,
     skip_clips_text,
+    skip_clips_min_shots,
     reverse_order,
     max_time_diff,
     detection_sensitivity
@@ -77,6 +78,9 @@ def generate_command_string(
         except ValueError:
             return "Error: Skip clips must be comma-separated integers"
     
+    if skip_clips_min_shots and skip_clips_min_shots > 0:
+        cmd.extend(["--skip-clips-min-shots", str(int(skip_clips_min_shots))])
+    
     if reverse_order:
         cmd.append("--reverse-clips")
     
@@ -98,6 +102,7 @@ def process_video(
     max_clips,
     start_time,
     skip_clips_text,
+    skip_clips_min_shots,
     reverse_order,
     max_time_diff,
     detection_sensitivity
@@ -165,7 +170,10 @@ def process_video(
                 cmd.extend(["--skip-clips"] + [str(x) for x in skip_clips])
         except ValueError:
             return "Error: Skip clips must be comma-separated integers"
-
+    
+    if skip_clips_min_shots and skip_clips_min_shots > 0:
+        cmd.extend(["--skip-clips-min-shots", str(int(skip_clips_min_shots))])
+    
     if reverse_order:
         cmd.append("--reverse-clips")
 
@@ -203,6 +211,7 @@ def gradio_interface(
     max_clips,
     start_time,
     skip_clips_text,
+    skip_clips_min_shots,
     reverse_order,
     max_time_diff,
     detection_sensitivity
@@ -212,13 +221,13 @@ def gradio_interface(
     """
     return process_video(
         video_file, buffer_time, output_csv, create_clips, output_prefix,
-        sort_by, max_clips, start_time, skip_clips_text, reverse_order,
-        max_time_diff, detection_sensitivity
+        sort_by, max_clips, start_time, skip_clips_text, skip_clips_min_shots,
+        reverse_order, max_time_diff, detection_sensitivity
     )
 
 # Create the Gradio interface
-with gr.Blocks(title="ETT Video Clipper", theme=gr.themes.Soft()) as interface:
-    gr.Markdown("# 🎥 ETT Video Clipper")
+with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()) as interface:
+    gr.Markdown("# 🎥 Eleven Table Tennis Video Clipper")
     gr.Markdown("Upload an MP4 video file to extract clips based on audio events with full parameter control.")
 
     with gr.Row():
@@ -296,6 +305,15 @@ with gr.Blocks(title="ETT Video Clipper", theme=gr.themes.Soft()) as interface:
                 info="Comma-separated list of clip indices to skip"
             )
 
+            with gr.Row():
+                skip_clips_min_shots = gr.Number(
+                    label="Minimum Shots per Clip",
+                    value=0,
+                    minimum=0,
+                    maximum=100,
+                    info="Filter out clips with fewer than this many shots (0 = no filtering)"
+                )
+
             # Advanced Settings
             gr.Markdown("### 🔧 Advanced Settings")
             with gr.Row():
@@ -322,9 +340,9 @@ with gr.Blocks(title="ETT Video Clipper", theme=gr.themes.Soft()) as interface:
                 info="Sensitivity for audio onset detection"
             )
 
-            generate_btn = gr.Button("🚀 Generate Clips", variant="primary", size="lg")
-
         with gr.Column(scale=3):
+            generate_btn = gr.Button("🚀 Generate Clips", variant="primary", size="lg")
+            
             gr.Markdown("### 📋 Command Preview & Output")
             
             # Command Preview Section
@@ -350,8 +368,8 @@ with gr.Blocks(title="ETT Video Clipper", theme=gr.themes.Soft()) as interface:
     # Event handlers
     inputs_list = [
         video_input, buffer_time, output_csv, create_clips, output_prefix,
-        sort_by, max_clips, start_time, skip_clips_text, reverse_order,
-        max_time_diff, detection_sensitivity
+        sort_by, max_clips, start_time, skip_clips_text, skip_clips_min_shots,
+        reverse_order, max_time_diff, detection_sensitivity
     ]
     
     # Show command preview immediately when button is clicked
