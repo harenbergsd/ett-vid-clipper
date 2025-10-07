@@ -90,77 +90,153 @@ argparser.add_argument(
 )
 
 
-def main():
-    args = argparser.parse_args()
+def process_video(
+    video_file,
+    buffer=1.5,
+    output_csv=False,
+    create_clips_flag=True,
+    output_prefix="clips",
+    sort_by="chrono",
+    max_clips=None,
+    start_time=0,
+    skip_clips=None,
+    skip_clips_min_shots=0,
+    reverse_clips=False,
+    max_time_diff=2.5,
+    detection_sensitivity=0.02
+):
+    """
+    Process video to extract clips based on audio events.
+    
+    Args:
+        video_file: Path to the video file
+        buffer: Time buffer around clips (seconds)
+        output_csv: Whether to export timestamps to CSV
+        create_clips_flag: Whether to create video clips
+        output_prefix: Prefix for output files
+        sort_by: How to sort clips ("chrono", "shots", "duration")
+        max_clips: Maximum number of clips to extract
+        start_time: Start processing from this time (seconds)
+        skip_clips: List of clip indices to skip
+        skip_clips_min_shots: Minimum shots required for a clip
+        reverse_clips: Reverse the order of clips
+        max_time_diff: Maximum time between hits to group into one clip
+        detection_sensitivity: Sensitivity for audio onset detection
+    
+    Returns:
+        dict: Processing results including points DataFrame and output messages
+    """
+    if skip_clips is None:
+        skip_clips = []
     
     # Create output directory if it doesn't exist
     OUTPUT_DIR.mkdir(exist_ok=True)
 
-    timestamps = detect_hits(args.video_file, start_time=args.starttime, delta=args.delta)
-    points_df = get_points(timestamps, max_time_diff=args.max_time_diff)
+    output_messages = []
+    
+    timestamps = detect_hits(video_file, start_time=start_time, delta=detection_sensitivity)
+    points_df = get_points(timestamps, max_time_diff=max_time_diff)
 
     # Do any sorting or limiting of the clips
-    if args.orderby == "duration":
+    if sort_by == "duration":
         points_df = points_df.sort_values(by=["duration", "shots"], ascending=False)
-    if args.orderby == "shots":
+    if sort_by == "shots":
         points_df = points_df.sort_values(
             by=["shots", "duration"], ascending=[False, True]
         )  # shorter duration means more exciting?
 
-    if args.nclips:
-        points_df = points_df.head(args.nclips + len(args.skip_clips))  # + skip clips
+    if max_clips:
+        points_df = points_df.head(max_clips + len(skip_clips))  # + skip clips
     points_df = points_df.reset_index()
-    if len(args.skip_clips) > 0:
-        points_df = points_df.drop(index=args.skip_clips, errors="ignore")
+    if len(skip_clips) > 0:
+        points_df = points_df.drop(index=skip_clips, errors="ignore")
     
     # Filter out clips with fewer than the minimum required shots
-    if args.skip_clips_min_shots > 0:
+    if skip_clips_min_shots > 0:
         initial_count = len(points_df)
-        points_df = points_df[points_df["shots"] >= args.skip_clips_min_shots]
+        points_df = points_df[points_df["shots"] >= skip_clips_min_shots]
         filtered_count = initial_count - len(points_df)
         if filtered_count > 0:
-            print(f"Filtered out {filtered_count} clips with fewer than {args.skip_clips_min_shots} shots")
+            msg = f"Filtered out {filtered_count} clips with fewer than {skip_clips_min_shots} shots"
+            output_messages.append(msg)
+            print(msg)
 
     points_df = points_df.round(2)
     points_df.index.name = "clip_id"
     points_df.rename(columns={"index": "point"}, inplace=True)
 
     # Print and optionally write out the data
-    print()
-    print("Extracted points:")
+    output_messages.append("")
+    output_messages.append("Extracted points:")
     df = points_df.copy()
     df["start"] = pd.to_datetime(df["start"], unit="s").dt.strftime("%H:%M:%S")
     df["end"] = pd.to_datetime(df["end"], unit="s").dt.strftime("%H:%M:%S")
-    print(df.to_markdown(index=True))
-    if args.outcsv:
-        csv_path = OUTPUT_DIR / f"{args.outname}.csv"
+    output_messages.append(df.to_markdown(index=True))
+    if output_csv:
+        csv_path = OUTPUT_DIR / f"{output_prefix}.csv"
         df.to_csv(csv_path, index=True)
-        print(f"CSV saved to: {csv_path}")
-    print()
+        msg = f"CSV saved to: {csv_path}"
+        output_messages.append(msg)
+        print(msg)
+    output_messages.append("")
 
     # Create clips and a combined video
-    if args.outclips:
-        print("Creating video clips ...")
+    if create_clips_flag:
+        output_messages.append("Creating video clips ...")
         # Must clean up any existing files to avoid ffmpeg hanging
-        for f in glob.glob(str(OUTPUT_DIR / f"{args.outname}_*.mp4")) + [str(OUTPUT_DIR / f"{args.outname}.mp4")]:
+        for f in glob.glob(str(OUTPUT_DIR / f"{output_prefix}_*.mp4")) + [str(OUTPUT_DIR / f"{output_prefix}.mp4")]:
             if os.path.exists(f):
                 os.remove(f)
 
         st = time.time()
-        keyframes = get_keyframes(args.video_file)  # can only cut on a keyframe to avoid re-encoding
+        keyframes = get_keyframes(video_file)  # can only cut on a keyframe to avoid re-encoding
         segment_files = create_clips(
-            args.video_file,
+            video_file,
             points_df[["start", "end"]].values,
             keyframes,
-            prefix=args.outname,
-            buffer=args.buffer,
+            prefix=output_prefix,
+            buffer=buffer,
         )
-        if args.reverse_clips:
+        if reverse_clips:
             segment_files = segment_files[::-1]
-        combined_video_path = OUTPUT_DIR / f"{args.outname}.mp4"
+        combined_video_path = OUTPUT_DIR / f"{output_prefix}.mp4"
         concat_clips(segment_files, str(combined_video_path))
-        print(f"Done! Created {len(segment_files)} video clips in {round(time.time()-st)}s")
-        print(f"Combined video saved to: {combined_video_path}")
+        msg = f"Done! Created {len(segment_files)} video clips in {round(time.time()-st)}s"
+        output_messages.append(msg)
+        print(msg)
+        msg = f"Combined video saved to: {combined_video_path}"
+        output_messages.append(msg)
+        print(msg)
+    
+    return {
+        "points_df": points_df,
+        "output_messages": output_messages,
+        "clip_count": len(points_df)
+    }
+
+
+def main():
+    args = argparser.parse_args()
+    
+    result = process_video(
+        video_file=args.video_file,
+        buffer=args.buffer,
+        output_csv=args.outcsv,
+        create_clips_flag=args.outclips,
+        output_prefix=args.outname,
+        sort_by=args.orderby,
+        max_clips=args.nclips,
+        start_time=args.starttime,
+        skip_clips=args.skip_clips,
+        skip_clips_min_shots=args.skip_clips_min_shots,
+        reverse_clips=args.reverse_clips,
+        max_time_diff=args.max_time_diff,
+        detection_sensitivity=args.delta
+    )
+    
+    # Print all output messages
+    for msg in result["output_messages"]:
+        print(msg)
 
 
 def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
