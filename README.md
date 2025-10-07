@@ -22,7 +22,11 @@ There are a number of options you can use to affect the behavior discussed below
 
 ### Python Dependencies
 
+Install Python 3 first.
+
 Install the required Python packages using pip:
+
+(On Windows, you can double click "install_dependencies.bat" to do this automatically.)
 
 ```bash
 pip install uv
@@ -35,8 +39,7 @@ You also need to install ffmpeg, which is used for video processing:
 
 **Windows:**
 
-- Download ffmpeg from https://ffmpeg.org/download.html#build-windows
-- Extract to a folder and add the `bin` directory to your PATH environment variable
+Press "Win + R". Run "winget install ffmpeg".
 
 **macOS:**
 
@@ -59,11 +62,13 @@ Install ffmpeg using your distribution's package manager.
 
 The easisest way to use this is to use the Web Interface:
 
+(On Windows, you can double click "run_webui.bat" to do this automatically.)
+
 ```bash
 uv run webui.py
 ```
 
-Then open your browser to `http://localhost:7860`.
+This should launch the WebUI in your browser automatically. If not, open your browser and go to `http://localhost:7860`.
 
 ### Command Line Interface
 
