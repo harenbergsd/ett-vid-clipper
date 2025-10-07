@@ -1,11 +1,34 @@
 import gradio as gr
 import subprocess
 import os
+import sys
+import shutil
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from dataclasses import dataclass
 
 CLIPPER_PATH = str(Path(__file__).parent / "clipper.py")
+
+def get_python_command() -> List[str]:
+    """
+    Determine the appropriate Python command for running clipper.py.
+    
+    Returns:
+        List of command parts for subprocess execution
+    """
+    # Check if current process is running under uv
+    if 'uv' in sys.executable.lower():
+        return ["uv", "run", "python"]
+    
+    # Check if uv is available in system PATH
+    if shutil.which("uv"):
+        return ["uv", "run", "python"]
+    
+    # Default to regular python
+    return ["python"]
+
+# Get the Python command to use
+PYTHON_CMD = get_python_command()
 
 @dataclass
 class ClipperConfig:
@@ -49,7 +72,7 @@ def build_clipper_command(config: ClipperConfig) -> tuple:
         raise ValueError("No video file provided")
     
     # Build command with all parameters
-    cmd = ["uv", "run", CLIPPER_PATH, config.video_file]
+    cmd = PYTHON_CMD + [CLIPPER_PATH, config.video_file]
     
     # Add parameters based on values
     if config.buffer_time != 1.5:  # Only add if different from default
