@@ -25,7 +25,8 @@ There are a number of options you can use to affect the behavior discussed below
 Install the required Python packages using pip:
 
 ```bash
-pip install -r requirements.txt
+pip install uv
+uv pip install -r requirements.txt
 ```
 
 ### System Dependencies
@@ -54,22 +55,34 @@ Install ffmpeg using your distribution's package manager.
 
 ## How to use it
 
+### Web Interface (Recommended)
+
+The easisest way to use this is to use the Web Interface:
+
+```bash
+uv run webui.py
+```
+
+Then open your browser to `http://localhost:7860`.
+
+### Command Line Interface
+
 To get help and see a description of the commands, run:
 
-```python
-python clipper.py -h
+```bash
+uv run clipper.py -h
 ```
 
 To create a full video of all points without the dead time in-between points, run:
 
-```python
-python clipper.py <video-file> --outclips
+```bash
+uv run clipper.py <video-file> --outclips
 ```
 
 To get a list of the top-10 points (by number of shots) and produce video clips of them, run:
 
-```python
-python clipper.py <video-file> --outclips --nclips 10 --orderby shots --reverse-clips
+```bash
+uv run clipper.py <video-file> --outclips --nclips 10 --orderby shots --reverse-clips
 ```
 
 The `reverse-clips` option will reverse the order of clips in the full clip video. So, for instance, you will see the longest duration (best clip) last rather than first.
@@ -78,48 +91,6 @@ Other options to consider:
 
 - Use `--starttime <x>` to specify that you only want to gather clips after x seconds. For instance, you probably don't want to include any warmup before a match.
 - If things are not working well, try tweaking the `--delta` options. These affect the sound detection aspect.
-
-## Web Interface
-
-A Gradio-based web interface is available for easier video processing through a user-friendly GUI. The web interface now uses direct function calls to the core processing logic, providing better performance and integration compared to the previous subprocess-based approach.
-
-### Features
-
-- 🎥 Upload MP4 video files through a web interface
-- 🚀 One-click processing with direct function calls (no subprocess overhead)
-- 📊 Organized settings with Basic and Advanced sections
-- 🔧 Collapsible Advanced Settings for cleaner interface
-- 📋 Real-time processing output display
-- 🎯 Automatic clip extraction and compilation
-
-### Running the Web Interface
-
-From the project root directory, run:
-
-```bash
-python webui.py
-```
-
-Or using uv:
-
-```bash
-uv run webui.py
-```
-
-The web interface will start and be accessible at `http://localhost:7860`.
-
-### Usage
-
-1. **Upload Video**: Click on the video upload area or drag and drop an MP4 file
-2. **Configure Settings**:
-   - **Basic Settings**: Buffer time, output prefix, and filtering clips with few shots
-   - **Advanced Settings**: All other processing options (collapsed by default)
-3. **Generate Clips**: Click the "🚀 Generate Clips" button to start processing
-4. **View Output**: Watch the real-time processing output in the text area
-5. **Access Results**: Generated clips will be saved in the `output/` folder (created automatically) as:
-   - `output/clips_0.mp4`, `output/clips_1.mp4`, etc. (individual clips)
-   - `output/clips.mp4` (compiled video of all clips)
-   - `output/clips.csv` (timestamps data, if CSV export is enabled)
 
 ## Inconsistent Version Error
 
