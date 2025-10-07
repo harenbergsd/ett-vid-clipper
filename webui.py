@@ -240,8 +240,8 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
             This doesn't affect clip generation - the processing will work normally with VLC-compatible files.
             """)
 
-            # Basic Output Settings
-            gr.Markdown("### 📊 Basic Output Settings")
+            # Basic Settings
+            gr.Markdown("### 📊 Basic Settings")
             with gr.Row():
                 buffer_time = gr.Slider(
                     label="Buffer Time",
@@ -251,6 +251,24 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                     step=0.1,
                     info="Time buffer around clips (seconds)"
                 )
+                skip_clips_min_shots = gr.Number(
+                    label="Skip Clips with Few Shots",
+                    value=0,
+                    minimum=0,
+                    maximum=100,
+                    info="Filter out clips with fewer than this many shots (0 = no filtering)"
+                )
+
+            output_prefix = gr.Textbox(
+                label="Output Prefix",
+                value="clips",
+                placeholder="clips",
+                info="Prefix for output files"
+            )
+
+            # Advanced Settings
+            gr.Markdown("### 🔧 Advanced Settings")
+            with gr.Row():
                 start_time = gr.Slider(
                     label="Start Time",
                     minimum=0,
@@ -259,8 +277,6 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                     step=1,
                     info="Start processing from this time (seconds)"
                 )
-
-            with gr.Row():
                 output_csv = gr.Checkbox(
                     label="Export CSV",
                     value=False,
@@ -272,15 +288,6 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                     info="Create video clips and combined video"
                 )
 
-            output_prefix = gr.Textbox(
-                label="Output Prefix",
-                value="clips",
-                placeholder="clips",
-                info="Prefix for output files"
-            )
-
-            # Processing Settings
-            gr.Markdown("### ⚙️ Processing Settings")
             with gr.Row():
                 sort_by = gr.Dropdown(
                     label="Sort By",
@@ -302,17 +309,6 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                 info="Comma-separated list of clip indices to skip"
             )
 
-            with gr.Row():
-                skip_clips_min_shots = gr.Number(
-                    label="Minimum Shots per Clip",
-                    value=0,
-                    minimum=0,
-                    maximum=100,
-                    info="Filter out clips with fewer than this many shots (0 = no filtering)"
-                )
-
-            # Advanced Settings
-            gr.Markdown("### 🔧 Advanced Settings")
             with gr.Row():
                 reverse_order = gr.Checkbox(
                     label="Reverse Clip Order",
@@ -349,8 +345,7 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                 lines=3,
                 max_lines=5,
                 show_copy_button=True,
-                interactive=False,
-                info="Preview of the command that will be executed"
+                interactive=False
             )
             
             gr.Markdown("#### 📊 Processing Output")
@@ -358,8 +353,7 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                 label="Command Output",
                 lines=20,
                 max_lines=50,
-                show_copy_button=True,
-                info="View the command execution results here"
+                show_copy_button=True
             )
 
     # Event handlers
@@ -401,16 +395,16 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
     ### 📖 Instructions:
     1. **Upload** an MP4 video file using the video input above
     2. **Configure** the processing parameters using the control groups:
-       - **Basic Settings**: Buffer time, output options, and file prefix
-       - **Processing Settings**: Sorting, clip limits, and skip options
-       - **Advanced Settings**: Fine-tuning for detection and grouping
+       - **Basic Settings**: Buffer time, output prefix, and filtering clips with few shots
+       - **Advanced Settings**: All other processing options including timing, output formats, and detection settings
     3. **Generate Clips** by clicking the button to start processing
     4. **Monitor Progress** in the output area above
-    5. **Find Results** in the current directory (clips/, CSV files, etc.)
+    5. **Find Results** in the output directory (clips, CSV files, etc.)
 
     ### 💡 Tips:
     - Start with default settings for most use cases
     - Use **Buffer Time** to add padding around detected events
+    - **Skip Clips with Few Shots** filters out short rallies automatically
     - **Max Clips** helps limit processing for very long videos
     - **Skip Clips** is useful for excluding problematic sections
     - **Detection Sensitivity** affects how many audio events are detected
