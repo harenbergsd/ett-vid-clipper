@@ -81,13 +81,15 @@ Other options to consider:
 
 ## Web Interface
 
-A Gradio-based web interface is available for easier video processing through a user-friendly GUI.
+A Gradio-based web interface is available for easier video processing through a user-friendly GUI. The web interface now uses direct function calls to the core processing logic, providing better performance and integration compared to the previous subprocess-based approach.
 
 ### Features
 
 - 🎥 Upload MP4 video files through a web interface
-- 🚀 One-click processing with real-time progress display
-- 📋 View command output and processing status
+- 🚀 One-click processing with direct function calls (no subprocess overhead)
+- 📊 Organized settings with Basic and Advanced sections
+- 🔧 Collapsible Advanced Settings for cleaner interface
+- 📋 Real-time processing output display
 - 🎯 Automatic clip extraction and compilation
 
 ### Running the Web Interface
@@ -109,14 +111,17 @@ The web interface will start and be accessible at `http://localhost:7860`.
 ### Usage
 
 1. **Upload Video**: Click on the video upload area or drag and drop an MP4 file
-2. **Generate Clips**: Click the "🚀 Generate Clips" button to start processing
-3. **View Output**: Watch the real-time command output in the text area
-4. **Access Results**: Generated clips will be saved in the `output/` folder (created automatically) as:
+2. **Configure Settings**:
+   - **Basic Settings**: Buffer time, output prefix, and filtering clips with few shots
+   - **Advanced Settings**: All other processing options (collapsed by default)
+3. **Generate Clips**: Click the "🚀 Generate Clips" button to start processing
+4. **View Output**: Watch the real-time processing output in the text area
+5. **Access Results**: Generated clips will be saved in the `output/` folder (created automatically) as:
    - `output/clips_0.mp4`, `output/clips_1.mp4`, etc. (individual clips)
    - `output/clips.mp4` (compiled video of all clips)
    - `output/clips.csv` (timestamps data, if CSV export is enabled)
 
-### Inconsistent Version Error
+## Inconsistent Version Error
 
 If you get an error like:
 
