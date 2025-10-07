@@ -213,6 +213,17 @@ def gradio_interface(
 
 # Create the Gradio interface
 with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()) as interface:
+    # Custom CSS for transparent labels with borders
+    gr.HTML("""
+    <style>
+    .gradio-container .has-info {
+        background: #383640 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 4px !important;
+        padding: 8px 12px !important;
+    }
+    </style>
+    """)
     gr.Markdown("# 🎥 Eleven Table Tennis Video Clipper")
     gr.Markdown("Upload an MP4 video file to extract clips based on audio events with full parameter control.")
 
