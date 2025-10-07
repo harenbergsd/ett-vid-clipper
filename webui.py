@@ -240,98 +240,100 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
             This doesn't affect clip generation - the processing will work normally with VLC-compatible files.
             """)
 
-            # Basic Settings
-            gr.Markdown("### 📊 Basic Settings")
-            with gr.Row():
-                buffer_time = gr.Slider(
-                    label="Buffer Time",
-                    minimum=0.1,
-                    maximum=5.0,
-                    value=1.5,
-                    step=0.1,
-                    info="Time buffer around clips (seconds)"
-                )
-                skip_clips_min_shots = gr.Number(
-                    label="Skip Clips with Few Shots",
-                    value=0,
-                    minimum=0,
-                    maximum=100,
-                    info="Filter out clips with fewer than this many shots (0 = no filtering)"
-                )
+            # Basic Settings Group
+            with gr.Accordion("🔧 Basic Settings", open=True):
+                with gr.Group():
+                    with gr.Row():
+                        buffer_time = gr.Slider(
+                            label="Buffer Time",
+                            minimum=0.1,
+                            maximum=5.0,
+                            value=1.5,
+                            step=0.1,
+                            info="Time buffer around clips (seconds)"
+                        )
+                        skip_clips_min_shots = gr.Number(
+                            label="Skip Clips with Few Shots",
+                            value=0,
+                            minimum=0,
+                            maximum=100,
+                            info="Filter out clips with fewer than this many shots (0 = no filtering)"
+                        )
 
-            output_prefix = gr.Textbox(
-                label="Output Prefix",
-                value="clips",
-                placeholder="clips",
-                info="Prefix for output files"
-            )
+                    output_prefix = gr.Textbox(
+                        label="Output Prefix",
+                        value="clips",
+                        placeholder="clips",
+                        info="Prefix for output files"
+                    )
 
-            # Advanced Settings
-            gr.Markdown("### 🔧 Advanced Settings")
-            with gr.Row():
-                start_time = gr.Slider(
-                    label="Start Time",
-                    minimum=0,
-                    maximum=3600,
-                    value=0,
-                    step=1,
-                    info="Start processing from this time (seconds)"
-                )
-                output_csv = gr.Checkbox(
-                    label="Export CSV",
-                    value=False,
-                    info="Export timestamps to CSV file"
-                )
-                create_clips = gr.Checkbox(
-                    label="Create Video Clips",
-                    value=True,
-                    info="Create video clips and combined video"
-                )
+            # Advanced Settings Accordion (collapsible)
+            with gr.Accordion("🔧 Advanced Settings", open=False):
+                with gr.Group():
+                    with gr.Row():
+                        start_time = gr.Slider(
+                            label="Start Time",
+                            minimum=0,
+                            maximum=3600,
+                            value=0,
+                            step=1,
+                            info="Start processing from this time (seconds)"
+                        )
+                        output_csv = gr.Checkbox(
+                            label="Export CSV",
+                            value=False,
+                            info="Export timestamps to CSV file"
+                        )
+                        create_clips = gr.Checkbox(
+                            label="Create Video Clips",
+                            value=True,
+                            info="Create video clips and combined video"
+                        )
 
-            with gr.Row():
-                sort_by = gr.Dropdown(
-                    label="Sort By",
-                    choices=["chrono", "shots", "duration"],
-                    value="chrono",
-                    info="How to sort the extracted clips"
-                )
-                max_clips = gr.Number(
-                    label="Max Clips",
-                    value=None,
-                    minimum=None,
-                    maximum=1000,
-                    info="Maximum number of clips to extract (leave empty for unlimited)"
-                )
+                    with gr.Row():
+                        sort_by = gr.Dropdown(
+                            label="Sort By",
+                            choices=["chrono", "shots", "duration"],
+                            value="chrono",
+                            info="How to sort the extracted clips"
+                        )
+                        max_clips = gr.Number(
+                            label="Max Clips",
+                            value=None,
+                            minimum=None,
+                            maximum=1000,
+                            info="Maximum number of clips to extract (leave empty for unlimited)"
+                        )
 
-            skip_clips_text = gr.Textbox(
-                label="Skip Clips",
-                placeholder="e.g., 0, 2, 5",
-                info="Comma-separated list of clip indices to skip"
-            )
+                    skip_clips_text = gr.Textbox(
+                        label="Skip Clips",
+                        placeholder="e.g., 0, 2, 5",
+                        info="Comma-separated list of clip indices to skip"
+                    )
 
-            with gr.Row():
-                reverse_order = gr.Checkbox(
-                    label="Reverse Clip Order",
-                    value=False,
-                    info="Reverse the order of clips in final video"
-                )
-                max_time_diff = gr.Slider(
-                    label="Max Time Between Hits",
-                    minimum=0.5,
-                    maximum=10.0,
-                    value=2.5,
-                    step=0.1,
-                    info="Maximum time between onsets to group into one clip"
-                )
+                    with gr.Row():
+                        reverse_order = gr.Checkbox(
+                            label="Reverse Clip Order",
+                            value=False,
+                            info="Reverse the order of clips in final video"
+                        )
+                        max_time_diff = gr.Slider(
+                            label="Max Time Between Hits",
+                            minimum=0.5,
+                            maximum=10.0,
+                            value=2.5,
+                            step=0.1,
+                            info="Maximum time between onsets to group into one clip"
+                        )
 
-            detection_sensitivity = gr.Slider(
-                label="Detection Sensitivity",
-                minimum=0.001,
-                maximum=0.1,
-                value=0.02,
-                step=0.001,
-                info="Sensitivity for audio onset detection"
-            )
+                    detection_sensitivity = gr.Slider(
+                        label="Detection Sensitivity",
+                        minimum=0.001,
+                        maximum=0.1,
+                        value=0.02,
+                        step=0.001,
+                        info="Sensitivity for audio onset detection"
+                    )
 
         with gr.Column(scale=3):
             generate_btn = gr.Button("🚀 Generate Clips", variant="primary", size="lg")
