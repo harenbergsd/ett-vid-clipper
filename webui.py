@@ -3,8 +3,26 @@ import subprocess
 import os
 from pathlib import Path
 from typing import Tuple, Optional
+from dataclasses import dataclass
 
 CLIPPER_PATH = str(Path(__file__).parent / "clipper.py")
+
+@dataclass
+class ClipperConfig:
+    """Configuration for video clipping parameters."""
+    video_file: str
+    buffer_time: float = 1.5
+    output_csv: bool = False
+    create_clips: bool = True
+    output_prefix: str = "clips"
+    sort_by: str = "chrono"
+    max_clips: Optional[int] = None
+    start_time: int = 0
+    skip_clips_text: str = ""
+    skip_clips_min_shots: int = 0
+    reverse_order: bool = False
+    max_time_diff: float = 2.5
+    detection_sensitivity: float = 0.02
 
 def run_command(cmd: list) -> Tuple[str, str, int]:
     """Run a command and return stdout, stderr, and return code."""
@@ -20,186 +38,120 @@ def run_command(cmd: list) -> Tuple[str, str, int]:
     except Exception as e:
         return "", f"Error running command: {str(e)}", 1
 
-def generate_command_string(
-    video_file,
-    buffer_time,
-    output_csv,
-    create_clips,
-    output_prefix,
-    sort_by,
-    max_clips,
-    start_time,
-    skip_clips_text,
-    skip_clips_min_shots,
-    reverse_order,
-    max_time_diff,
-    detection_sensitivity
-) -> str:
+def build_clipper_command(config: ClipperConfig) -> tuple:
+    """
+    Build the clipper command and return both list and string formats.
+    
+    Returns:
+        tuple: (command_list, command_string)
+    """
+    if not config.video_file:
+        raise ValueError("No video file provided")
+    
+    # Build command with all parameters
+    cmd = ["uv", "run", CLIPPER_PATH, config.video_file]
+    
+    # Add parameters based on values
+    if config.buffer_time != 1.5:  # Only add if different from default
+        cmd.extend(["--buffer", str(config.buffer_time)])
+    
+    if config.output_csv:
+        cmd.append("--outcsv")
+    
+    if config.create_clips:
+        cmd.append("--outclips")
+    
+    if config.output_prefix != "clips":
+        cmd.extend(["--outname", config.output_prefix])
+    
+    if config.sort_by != "chrono":
+        cmd.extend(["--orderby", config.sort_by])
+    
+    if config.max_clips and config.max_clips > 0:
+        cmd.extend(["--nclips", str(config.max_clips)])
+    
+    if config.start_time != 0:
+        cmd.extend(["--starttime", str(config.start_time)])
+    
+    # Parse skip clips from text input
+    if config.skip_clips_text and config.skip_clips_text.strip():
+        try:
+            skip_clips = [int(x.strip()) for x in config.skip_clips_text.split(",") if x.strip()]
+            if skip_clips:
+                cmd.extend(["--skip-clips"] + [str(x) for x in skip_clips])
+        except ValueError:
+            raise ValueError("Skip clips must be comma-separated integers")
+    
+    if config.skip_clips_min_shots and config.skip_clips_min_shots > 0:
+        cmd.extend(["--skip-clips-min-shots", str(int(config.skip_clips_min_shots))])
+    
+    if config.reverse_order:
+        cmd.append("--reverse-clips")
+    
+    if config.max_time_diff != 2.5:
+        cmd.extend(["--max-time-diff", str(config.max_time_diff)])
+    
+    if config.detection_sensitivity != 0.02:
+        cmd.extend(["--delta", str(config.detection_sensitivity)])
+    
+    return cmd, " ".join(cmd)
+
+
+def generate_command_string(config: ClipperConfig) -> str:
     """
     Generate the command string that will be executed.
     
     Returns:
         str: Formatted command string
     """
-    if not video_file:
-        return "No video file provided"
-    
-    # Build command with all parameters
-    cmd = ["uv", "run", "clipper.py", video_file]
-    
-    # Add parameters based on values
-    if buffer_time != 1.5:  # Only add if different from default
-        cmd.extend(["--buffer", str(buffer_time)])
-    
-    if output_csv:
-        cmd.append("--outcsv")
-    
-    if create_clips:
-        cmd.append("--outclips")
-    
-    if output_prefix != "clips":
-        cmd.extend(["--outname", output_prefix])
-    
-    if sort_by != "chrono":
-        cmd.extend(["--orderby", sort_by])
-    
-    if max_clips and max_clips > 0:
-        cmd.extend(["--nclips", str(max_clips)])
-    
-    if start_time != 0:
-        cmd.extend(["--starttime", str(start_time)])
-    
-    # Parse skip clips from text input
-    if skip_clips_text and skip_clips_text.strip():
-        try:
-            skip_clips = [int(x.strip()) for x in skip_clips_text.split(",") if x.strip()]
-            if skip_clips:
-                cmd.extend(["--skip-clips"] + [str(x) for x in skip_clips])
-        except ValueError:
-            return "Error: Skip clips must be comma-separated integers"
-    
-    if skip_clips_min_shots and skip_clips_min_shots > 0:
-        cmd.extend(["--skip-clips-min-shots", str(int(skip_clips_min_shots))])
-    
-    if reverse_order:
-        cmd.append("--reverse-clips")
-    
-    if max_time_diff != 2.5:
-        cmd.extend(["--max-time-diff", str(max_time_diff)])
-    
-    if detection_sensitivity != 0.02:
-        cmd.extend(["--delta", str(detection_sensitivity)])
-    
-    return " ".join(cmd)
+    try:
+        cmd_list, cmd_string = build_clipper_command(config)
+        return cmd_string
+    except ValueError as e:
+        return f"Error: {str(e)}"
 
-def process_video(
-    video_file,
-    buffer_time,
-    output_csv,
-    create_clips,
-    output_prefix,
-    sort_by,
-    max_clips,
-    start_time,
-    skip_clips_text,
-    skip_clips_min_shots,
-    reverse_order,
-    max_time_diff,
-    detection_sensitivity
-) -> str:
+def process_video(config: ClipperConfig) -> str:
     """
     Process the uploaded video file using the clipper script with full parameter support.
 
     Args:
-        video_file: Path to the uploaded video file
-        buffer_time: Time buffer around clips (seconds)
-        output_csv: Whether to export CSV timestamps
-        create_clips: Whether to create video clips
-        output_prefix: Prefix for output files
-        sort_by: How to sort clips ("chrono", "shots", "duration")
-        max_clips: Maximum number of clips to extract (None for unlimited)
-        start_time: Start processing from this time (seconds)
-        skip_clips_text: Comma-separated list of clip indices to skip
-        reverse_order: Whether to reverse clip order in final video
-        max_time_diff: Maximum time between onsets to group into one clip
-        detection_sensitivity: Sensitivity for onset detection
+        config: ClipperConfig object containing all processing parameters
 
     Returns:
         str: Combined output from the clipper command
     """
-    if not video_file:
-        return "Error: No video file provided"
+    try:
+        # Build command using centralized function
+        cmd_list, cmd_string = build_clipper_command(config)
 
-    if not os.path.exists(video_file):
-        return f"Error: Video file not found: {video_file}"
+        # Check if video file exists
+        if not os.path.exists(config.video_file):
+            return f"Error: Video file not found: {config.video_file}"
 
-    # Check if clipper.py exists
-    if not os.path.exists(CLIPPER_PATH):
-        return "Error: clipper.py not found in current directory"
+        # Check if clipper.py exists
+        if not os.path.exists(CLIPPER_PATH):
+            return "Error: clipper.py not found in current directory"
 
-    # Build command with all parameters
-    cmd = ["uv", "run", CLIPPER_PATH, video_file]
+        print(f"Running command: {cmd_string}")
 
-    # Add parameters based on values
-    if buffer_time != 1.5:  # Only add if different from default
-        cmd.extend(["--buffer", str(buffer_time)])
+        stdout, stderr, returncode = run_command(cmd_list)
 
-    if output_csv:
-        cmd.append("--outcsv")
+        # Combine outputs
+        output = ""
+        if stdout:
+            output += f"STDOUT:\n{stdout}\n"
+        if stderr:
+            output += f"STDERR:\n{stderr}\n"
 
-    if create_clips:
-        cmd.append("--outclips")
+        if returncode == 0:
+            output += "\n✅ Command completed successfully!"
+        else:
+            output += f"\n❌ Command failed with return code: {returncode}"
 
-    if output_prefix != "clips":
-        cmd.extend(["--outname", output_prefix])
+        return output
 
-    if sort_by != "chrono":
-        cmd.extend(["--orderby", sort_by])
-
-    if max_clips and max_clips > 0:
-        cmd.extend(["--nclips", str(max_clips)])
-
-    if start_time != 0:
-        cmd.extend(["--starttime", str(start_time)])
-
-    # Parse skip clips from text input
-    if skip_clips_text and skip_clips_text.strip():
-        try:
-            skip_clips = [int(x.strip()) for x in skip_clips_text.split(",") if x.strip()]
-            if skip_clips:
-                cmd.extend(["--skip-clips"] + [str(x) for x in skip_clips])
-        except ValueError:
-            return "Error: Skip clips must be comma-separated integers"
-    
-    if skip_clips_min_shots and skip_clips_min_shots > 0:
-        cmd.extend(["--skip-clips-min-shots", str(int(skip_clips_min_shots))])
-    
-    if reverse_order:
-        cmd.append("--reverse-clips")
-
-    if max_time_diff != 2.5:
-        cmd.extend(["--max-time-diff", str(max_time_diff)])
-
-    if detection_sensitivity != 0.02:
-        cmd.extend(["--delta", str(detection_sensitivity)])
-
-    print(f"Running command: {' '.join(cmd)}")
-
-    stdout, stderr, returncode = run_command(cmd)
-
-    # Combine outputs
-    output = ""
-    if stdout:
-        output += f"STDOUT:\n{stdout}\n"
-    if stderr:
-        output += f"STDERR:\n{stderr}\n"
-
-    if returncode == 0:
-        output += "\n✅ Command completed successfully!"
-    else:
-        output += f"\n❌ Command failed with return code: {returncode}"
-
-    return output
+    except ValueError as e:
+        return f"Error: {str(e)}"
 
 def gradio_interface(
     video_file,
@@ -219,11 +171,22 @@ def gradio_interface(
     """
     Gradio interface function that processes video and returns output.
     """
-    return process_video(
-        video_file, buffer_time, output_csv, create_clips, output_prefix,
-        sort_by, max_clips, start_time, skip_clips_text, skip_clips_min_shots,
-        reverse_order, max_time_diff, detection_sensitivity
+    config = ClipperConfig(
+        video_file=video_file,
+        buffer_time=buffer_time,
+        output_csv=output_csv,
+        create_clips=create_clips,
+        output_prefix=output_prefix,
+        sort_by=sort_by,
+        max_clips=max_clips,
+        start_time=start_time,
+        skip_clips_text=skip_clips_text,
+        skip_clips_min_shots=skip_clips_min_shots,
+        reverse_order=reverse_order,
+        max_time_diff=max_time_diff,
+        detection_sensitivity=detection_sensitivity
     )
+    return process_video(config)
 
 # Create the Gradio interface
 with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()) as interface:
@@ -374,7 +337,21 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
     
     # Show command preview immediately when button is clicked
     generate_btn.click(
-        fn=generate_command_string,
+        fn=lambda *args: generate_command_string(ClipperConfig(
+            video_file=args[0],
+            buffer_time=args[1],
+            output_csv=args[2],
+            create_clips=args[3],
+            output_prefix=args[4],
+            sort_by=args[5],
+            max_clips=args[6],
+            start_time=args[7],
+            skip_clips_text=args[8],
+            skip_clips_min_shots=args[9],
+            reverse_order=args[10],
+            max_time_diff=args[11],
+            detection_sensitivity=args[12]
+        )),
         inputs=inputs_list,
         outputs=[command_preview]
     )
