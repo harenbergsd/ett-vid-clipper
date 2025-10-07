@@ -1,7 +1,10 @@
 import gradio as gr
 import os
+import glob
+import subprocess
+import platform
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple, List
 from dataclasses import dataclass
 
 # Import the clipper functions directly
@@ -25,7 +28,53 @@ class ClipperConfig:
     detection_sensitivity: float = 0.02
 
 
-def process_video_direct(config: ClipperConfig) -> str:
+def open_output_folder():
+    """Open the output folder in the system file browser."""
+    output_dir = Path("output")
+    
+    # Create output directory if it doesn't exist
+    output_dir.mkdir(exist_ok=True)
+    
+    # Open folder based on operating system
+    try:
+        if platform.system() == "Windows":
+            os.startfile(str(output_dir.absolute()))
+        elif platform.system() == "Darwin":  # macOS
+            subprocess.run(["open", str(output_dir.absolute())])
+        else:  # Linux and other Unix-like systems
+            subprocess.run(["xdg-open", str(output_dir.absolute())])
+    except Exception:
+        # Silently fail - user will notice if folder doesn't open
+        pass
+
+def get_generated_clips(output_prefix: str = "clips") -> List[Tuple[str, str]]:
+    """
+    Get list of generated clip files from the output folder with filenames as captions.
+    The compiled video (clips.mp4) will appear first if it exists.
+    
+    Args:
+        output_prefix: Prefix used for output files
+        
+    Returns:
+        List of tuples containing (file_path, caption)
+    """
+    clip_files = []
+    
+    # First, add the compiled video if it exists (should appear first)
+    compiled_video = f"output/{output_prefix}.mp4"
+    if os.path.exists(compiled_video):
+        filename = os.path.basename(compiled_video)
+        clip_files.append((compiled_video, filename))
+    
+    # Then add individual clip files (clips_0.mp4, clips_1.mp4, etc.)
+    pattern = f"output/{output_prefix}_*.mp4"
+    for file_path in sorted(glob.glob(pattern)):
+        filename = os.path.basename(file_path)
+        clip_files.append((file_path, filename))
+    
+    return clip_files
+
+def process_video_direct(config: ClipperConfig) -> Tuple[str, List[Tuple[str, str]]]:
     """
     Process the uploaded video file using direct function calls to clipper.py.
 
@@ -33,12 +82,14 @@ def process_video_direct(config: ClipperConfig) -> str:
         config: ClipperConfig object containing all processing parameters
 
     Returns:
-        str: Combined output from the clipper processing
+        Tuple containing:
+        - str: Combined output from the clipper processing
+        - List[Tuple[str, str]]: List of tuples containing (file_path, caption) for generated clips
     """
     try:
         # Check if video file exists
         if not config.video_file or not os.path.exists(config.video_file):
-            return f"Error: Video file not found: {config.video_file}"
+            return f"Error: Video file not found: {config.video_file}", []
 
         # Parse skip clips from text input
         skip_clips = []
@@ -46,7 +97,7 @@ def process_video_direct(config: ClipperConfig) -> str:
             try:
                 skip_clips = [int(x.strip()) for x in config.skip_clips_text.split(",") if x.strip()]
             except ValueError:
-                return "Error: Skip clips must be comma-separated integers"
+                return "Error: Skip clips must be comma-separated integers", []
 
         print(f"Processing video: {config.video_file}")
 
@@ -71,10 +122,13 @@ def process_video_direct(config: ClipperConfig) -> str:
         output = "\n".join(result["output_messages"])
         output += f"\n\n✅ Processing completed successfully! Created {result['clip_count']} clips."
 
-        return output
+        # Get the generated clip files with filenames as captions
+        clip_files = get_generated_clips(config.output_prefix)
+
+        return output, clip_files
 
     except Exception as e:
-        return f"Error during processing: {str(e)}"
+        return f"Error during processing: {str(e)}", []
 
 def gradio_interface(
     video_file,
@@ -90,9 +144,9 @@ def gradio_interface(
     reverse_order,
     max_time_diff,
     detection_sensitivity
-) -> str:
+) -> Tuple[str, List[Tuple[str, str]]]:
     """
-    Gradio interface function that processes video and returns output.
+    Gradio interface function that processes video and returns output and clip files with captions.
     """
     config = ClipperConfig(
         video_file=video_file,
@@ -240,9 +294,27 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
             
             output_text = gr.Textbox(
                 label="Console Output",
-                lines=25,
-                max_lines=50,
+                lines=15,
+                max_lines=30,
                 show_copy_button=True
+            )
+            
+            # Dynamic clip display area
+            gr.Markdown("### 🎬 Generated Clips")
+            
+            # Open folder button
+            open_folder_btn = gr.Button(
+                "📁 Open Output Folder",
+                variant="primary",
+                size="sm"
+            )
+            
+            clips_display = gr.Gallery(
+                elem_id="gallery",
+                columns=2,
+                rows=2,
+                height="auto",
+                object_fit="contain"
             )
 
     # Event handlers
@@ -252,11 +324,16 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
         reverse_order, max_time_diff, detection_sensitivity
     ]
     
-    # Execute processing and show output
+    # Execute processing and show output + clips
     generate_btn.click(
         fn=gradio_interface,
         inputs=inputs_list,
-        outputs=[output_text]
+        outputs=[output_text, clips_display]
+    )
+    
+    # Open folder button handler
+    open_folder_btn.click(
+        fn=open_output_folder
     )
 
     gr.Markdown("""
