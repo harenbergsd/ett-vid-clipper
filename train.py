@@ -4,13 +4,15 @@ import glob
 import numpy as np
 import pandas as pd
 import pickle
+from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import xgboost as xgb
 from helper import *
 
-TRAIN_DATA_DIR = "data/training"
+TRAIN_DATA_DIR = str(Path(__file__).parent / "data" / "training")
+model_path = str(Path(__file__).parent / "model.pkl")
 AUGMENTATION_RANGE = np.arange(-0.02, 0.02, 0.001)
 
 # Load features
@@ -62,5 +64,5 @@ model.fit(X, y)  # retrain on full data
 accuracy = accuracy_score(y, model.predict(X))
 model.nfeatures = len(X[0])
 print(f"Accuracy on full training data, {len(y)} samples: {accuracy}")
-with open("model.pkl", "wb") as f:
+with open(model_path, "wb") as f:
     pickle.dump(model, f)

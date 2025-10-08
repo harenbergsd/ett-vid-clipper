@@ -5,3 +5,5 @@ __pycache__
 data/onsets/*
 myenv
 /*.mp4
+model.pkl
+output/
