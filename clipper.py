@@ -103,11 +103,11 @@ def process_video(
     skip_clips_min_shots=0,
     reverse_clips=False,
     max_time_diff=2.5,
-    detection_sensitivity=0.02
+    detection_sensitivity=0.02,
 ):
     """
     Process video to extract clips based on audio events.
-    
+
     Args:
         video_file: Path to the video file
         buffer: Time buffer around clips (seconds)
@@ -122,18 +122,18 @@ def process_video(
         reverse_clips: Reverse the order of clips
         max_time_diff: Maximum time between hits to group into one clip
         detection_sensitivity: Sensitivity for audio onset detection
-    
+
     Returns:
         dict: Processing results including points DataFrame and output messages
     """
     if skip_clips is None:
         skip_clips = []
-    
+
     # Create output directory if it doesn't exist
     OUTPUT_DIR.mkdir(exist_ok=True)
 
     output_messages = []
-    
+
     timestamps = detect_hits(video_file, start_time=start_time, delta=detection_sensitivity)
     points_df = get_points(timestamps, max_time_diff=max_time_diff)
 
@@ -150,7 +150,7 @@ def process_video(
     points_df = points_df.reset_index()
     if len(skip_clips) > 0:
         points_df = points_df.drop(index=skip_clips, errors="ignore")
-    
+
     # Filter out clips with fewer than the minimum required shots
     if skip_clips_min_shots > 0:
         initial_count = len(points_df)
@@ -207,17 +207,13 @@ def process_video(
         msg = f"Combined video saved to: {combined_video_path}"
         output_messages.append(msg)
         print(msg)
-    
-    return {
-        "points_df": points_df,
-        "output_messages": output_messages,
-        "clip_count": len(points_df)
-    }
+
+    return {"points_df": points_df, "output_messages": output_messages, "clip_count": len(points_df)}
 
 
 def main():
     args = argparser.parse_args()
-    
+
     result = process_video(
         video_file=args.video_file,
         buffer=args.buffer,
@@ -231,9 +227,9 @@ def main():
         skip_clips_min_shots=args.skip_clips_min_shots,
         reverse_clips=args.reverse_clips,
         max_time_diff=args.max_time_diff,
-        detection_sensitivity=args.delta
+        detection_sensitivity=args.delta,
     )
-    
+
     # Print all output messages
     for msg in result["output_messages"]:
         print(msg)

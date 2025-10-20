@@ -10,9 +10,11 @@ from dataclasses import dataclass
 # Import the clipper functions directly
 from clipper import process_video
 
+
 @dataclass
 class ClipperConfig:
     """Configuration for video clipping parameters."""
+
     video_file: str
     buffer_time: float = 1.5
     output_csv: bool = False
@@ -31,10 +33,10 @@ class ClipperConfig:
 def open_output_folder():
     """Open the output folder in the system file browser."""
     output_dir = Path("output")
-    
+
     # Create output directory if it doesn't exist
     output_dir.mkdir(exist_ok=True)
-    
+
     # Open folder based on operating system
     try:
         if platform.system() == "Windows":
@@ -47,32 +49,34 @@ def open_output_folder():
         # Silently fail - user will notice if folder doesn't open
         pass
 
+
 def get_generated_clips(output_prefix: str = "clips") -> List[Tuple[str, str]]:
     """
     Get list of generated clip files from the output folder with filenames as captions.
     The compiled video (clips.mp4) will appear first if it exists.
-    
+
     Args:
         output_prefix: Prefix used for output files
-        
+
     Returns:
         List of tuples containing (file_path, caption)
     """
     clip_files = []
-    
+
     # First, add the compiled video if it exists (should appear first)
     compiled_video = f"output/{output_prefix}.mp4"
     if os.path.exists(compiled_video):
         filename = os.path.basename(compiled_video)
         clip_files.append((compiled_video, filename))
-    
+
     # Then add individual clip files (clips_0.mp4, clips_1.mp4, etc.)
     pattern = f"output/{output_prefix}_*.mp4"
     for file_path in sorted(glob.glob(pattern)):
         filename = os.path.basename(file_path)
         clip_files.append((file_path, filename))
-    
+
     return clip_files
+
 
 def process_video_direct(config: ClipperConfig) -> Tuple[str, List[Tuple[str, str]]]:
     """
@@ -115,7 +119,7 @@ def process_video_direct(config: ClipperConfig) -> Tuple[str, List[Tuple[str, st
             skip_clips_min_shots=config.skip_clips_min_shots,
             reverse_clips=config.reverse_order,
             max_time_diff=config.max_time_diff,
-            detection_sensitivity=config.detection_sensitivity
+            detection_sensitivity=config.detection_sensitivity,
         )
 
         # Combine output messages
@@ -130,6 +134,7 @@ def process_video_direct(config: ClipperConfig) -> Tuple[str, List[Tuple[str, st
     except Exception as e:
         return f"Error during processing: {str(e)}", []
 
+
 def gradio_interface(
     video_file,
     buffer_time,
@@ -143,7 +148,7 @@ def gradio_interface(
     skip_clips_min_shots,
     reverse_order,
     max_time_diff,
-    detection_sensitivity
+    detection_sensitivity,
 ) -> Tuple[str, List[Tuple[str, str]]]:
     """
     Gradio interface function that processes video and returns output and clip files with captions.
@@ -161,14 +166,16 @@ def gradio_interface(
         skip_clips_min_shots=skip_clips_min_shots,
         reverse_order=reverse_order,
         max_time_diff=max_time_diff,
-        detection_sensitivity=detection_sensitivity
+        detection_sensitivity=detection_sensitivity,
     )
     return process_video_direct(config)
+
 
 # Create the Gradio interface
 with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()) as interface:
     # Custom CSS for transparent labels with borders
-    gr.HTML("""
+    gr.HTML(
+        """
     <style>
     .gradio-container .has-info {
         background: #383640 !important;
@@ -177,7 +184,8 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
         padding: 8px 12px !important;
     }
     </style>
-    """)
+    """
+    )
     gr.Markdown("# 🎥 Eleven Table Tennis Video Clipper")
     gr.Markdown("Upload an MP4 video file to extract clips based on audio events with full parameter control.")
 
@@ -189,10 +197,12 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                 label="Upload MP4 Video",
                 sources=["upload"],
             )
-            gr.Markdown("""
+            gr.Markdown(
+                """
             **💡 Video Preview Note:** Some MP4 files may show "video not playable" in the preview due to browser codec limitations.
             This doesn't affect clip generation - the processing will work normally with VLC-compatible files.
-            """)
+            """
+            )
 
             # Basic Settings Group
             with gr.Accordion("🔧 Basic Settings", open=True):
@@ -204,21 +214,18 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                             maximum=5.0,
                             value=1.5,
                             step=0.1,
-                            info="Time buffer around clips (seconds)"
+                            info="Time buffer around clips (seconds)",
                         )
                         skip_clips_min_shots = gr.Number(
                             label="Skip Clips with Few Shots",
                             value=0,
                             minimum=0,
                             maximum=100,
-                            info="Filter out clips with fewer than this many shots (0 = no filtering)"
+                            info="Filter out clips with fewer than this many shots (0 = no filtering)",
                         )
 
                     output_prefix = gr.Textbox(
-                        label="Output Prefix",
-                        value="clips",
-                        placeholder="clips",
-                        info="Prefix for output files"
+                        label="Output Prefix", value="clips", placeholder="clips", info="Prefix for output files"
                     )
 
             # Advanced Settings Accordion (collapsible)
@@ -231,17 +238,11 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                             maximum=3600,
                             value=0,
                             step=1,
-                            info="Start processing from this time (seconds)"
+                            info="Start processing from this time (seconds)",
                         )
-                        output_csv = gr.Checkbox(
-                            label="Export CSV",
-                            value=False,
-                            info="Export timestamps to CSV file"
-                        )
+                        output_csv = gr.Checkbox(label="Export CSV", value=False, info="Export timestamps to CSV file")
                         create_clips = gr.Checkbox(
-                            label="Create Video Clips",
-                            value=True,
-                            info="Create video clips and combined video"
+                            label="Create Video Clips", value=True, info="Create video clips and combined video"
                         )
 
                     with gr.Row():
@@ -249,27 +250,25 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                             label="Sort By",
                             choices=["chrono", "shots", "duration"],
                             value="chrono",
-                            info="How to sort the extracted clips"
+                            info="How to sort the extracted clips",
                         )
                         max_clips = gr.Number(
                             label="Max Clips",
                             value=None,
                             minimum=None,
                             maximum=1000,
-                            info="Maximum number of clips to extract (leave empty for unlimited)"
+                            info="Maximum number of clips to extract (leave empty for unlimited)",
                         )
 
                     skip_clips_text = gr.Textbox(
                         label="Skip Clips",
                         placeholder="e.g., 0, 2, 5",
-                        info="Comma-separated list of clip indices to skip"
+                        info="Comma-separated list of clip indices to skip",
                     )
 
                     with gr.Row():
                         reverse_order = gr.Checkbox(
-                            label="Reverse Clip Order",
-                            value=False,
-                            info="Reverse the order of clips in final video"
+                            label="Reverse Clip Order", value=False, info="Reverse the order of clips in final video"
                         )
                         max_time_diff = gr.Slider(
                             label="Max Time Between Hits",
@@ -277,7 +276,7 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                             maximum=10.0,
                             value=2.5,
                             step=0.1,
-                            info="Maximum time between onsets to group into one clip"
+                            info="Maximum time between onsets to group into one clip",
                         )
 
                     detection_sensitivity = gr.Slider(
@@ -286,57 +285,47 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                         maximum=0.1,
                         value=0.02,
                         step=0.001,
-                        info="Sensitivity for audio onset detection"
+                        info="Sensitivity for audio onset detection",
                     )
 
         with gr.Column(scale=3):
             generate_btn = gr.Button("🚀 Generate Clips", variant="primary", size="lg")
-            
-            output_text = gr.Textbox(
-                label="Console Output",
-                lines=15,
-                max_lines=30,
-                show_copy_button=True
-            )
-            
+
+            output_text = gr.Textbox(label="Console Output", lines=15, max_lines=30, show_copy_button=True)
+
             # Dynamic clip display area
             gr.Markdown("### 🎬 Generated Clips")
-            
+
             # Open folder button
-            open_folder_btn = gr.Button(
-                "📁 Open Output Folder",
-                variant="primary",
-                size="sm"
-            )
-            
-            clips_display = gr.Gallery(
-                elem_id="gallery",
-                columns=2,
-                rows=2,
-                height="auto",
-                object_fit="contain"
-            )
+            open_folder_btn = gr.Button("📁 Open Output Folder", variant="primary", size="sm")
+
+            clips_display = gr.Gallery(elem_id="gallery", columns=2, rows=2, height="auto", object_fit="contain")
 
     # Event handlers
     inputs_list = [
-        video_input, buffer_time, output_csv, create_clips, output_prefix,
-        sort_by, max_clips, start_time, skip_clips_text, skip_clips_min_shots,
-        reverse_order, max_time_diff, detection_sensitivity
+        video_input,
+        buffer_time,
+        output_csv,
+        create_clips,
+        output_prefix,
+        sort_by,
+        max_clips,
+        start_time,
+        skip_clips_text,
+        skip_clips_min_shots,
+        reverse_order,
+        max_time_diff,
+        detection_sensitivity,
     ]
-    
-    # Execute processing and show output + clips
-    generate_btn.click(
-        fn=gradio_interface,
-        inputs=inputs_list,
-        outputs=[output_text, clips_display]
-    )
-    
-    # Open folder button handler
-    open_folder_btn.click(
-        fn=open_output_folder
-    )
 
-    gr.Markdown("""
+    # Execute processing and show output + clips
+    generate_btn.click(fn=gradio_interface, inputs=inputs_list, outputs=[output_text, clips_display])
+
+    # Open folder button handler
+    open_folder_btn.click(fn=open_output_folder)
+
+    gr.Markdown(
+        """
     ### 📖 Instructions:
     1. **Upload** an MP4 video file using the video input above
     2. **Configure** the processing parameters using the control groups:
@@ -353,7 +342,8 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
     - **Max Clips** helps limit processing for very long videos
     - **Skip Clips** is useful for excluding problematic sections
     - **Detection Sensitivity** affects how many audio events are detected
-    """)
+    """
+    )
 
 if __name__ == "__main__":
     interface.launch(server_name="0.0.0.0", share=False, inbrowser=True)
