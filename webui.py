@@ -3,6 +3,8 @@ import os
 import glob
 import subprocess
 import platform
+import json
+import tempfile
 from pathlib import Path
 from typing import Optional, Tuple, List
 from dataclasses import dataclass
@@ -135,6 +137,50 @@ def process_video_direct(config: ClipperConfig) -> Tuple[str, List[Tuple[str, st
         return f"Error during processing: {str(e)}", []
 
 
+def get_format(video_path):
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=format_name", "-of", "json", video_path],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        data = json.loads(result.stdout)
+        return data["format"]["format_name"]  # e.g., "mov,mp4,m4a,3gp,3g2,mj2"
+    except Exception:
+        return None
+
+
+def fix_moov_if_needed(video_path):
+    # Check if video format requires moov atom fix
+    # This fixes some issues where gradio cannot play some MP4 files due to moov atom placement
+    fixed_path = os.path.join(tempfile.gettempdir(), "fixed.mp4")
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-fflags",
+        "+genpts",
+        "-i",
+        video_path,
+        "-c:v",
+        "copy",
+        "-c:a",
+        "copy",
+        "-movflags",
+        "+faststart",
+        "-avoid_negative_ts",
+        "1",
+        fixed_path,
+    ]
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return fixed_path if os.path.exists(fixed_path) and os.path.getsize(fixed_path) > 0 else video_path
+
+
+def handle_upload(video):
+    safe_video = fix_moov_if_needed(video)
+    return safe_video
+
+
 def gradio_interface(
     video_file,
     buffer_time,
@@ -193,14 +239,16 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
         with gr.Column(scale=2):
             # Video Upload Section
             gr.Markdown("### 📹 Video Input")
-            video_input = gr.Video(
-                label="Upload MP4 Video",
-                sources=["upload"],
-            )
+
+            file_input = gr.File(label="Upload Video File (MP4, MOV, etc.)")
+
+            preview_video = gr.Video(label="Input Video")
+            file_input.change(handle_upload, inputs=file_input, outputs=preview_video)
+
             gr.Markdown(
                 """
-            **💡 Video Preview Note:** Some MP4 files may show "video not playable" in the preview due to browser codec limitations.
-            This doesn't affect clip generation - the processing will work normally with VLC-compatible files.
+            **💡 Video Preview Note:** Some MP4 files may show an error due to browser codec limitations.
+            This does not affect clip generation - the processing will work normally with VLC-compatible files.
             """
             )
 
@@ -303,7 +351,7 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
 
     # Event handlers
     inputs_list = [
-        video_input,
+        file_input,
         buffer_time,
         output_csv,
         create_clips,
@@ -339,8 +387,9 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
     - Start with default settings for most use cases
     - Use **Buffer Time** to add padding around detected events
     - **Skip Clips with Few Shots** filters out short rallies automatically
-    - **Max Clips** helps limit processing for very long videos
-    - **Skip Clips** is useful for excluding problematic sections
+    - **Skip Clips** is useful for excluding specific clips by index (see the file name for the index value)
+    - To build a top-10 video, sort by **shots** and set **max clips to 10**
+        - If you want the best point at the end of the video, enable **Reverse Clip Order**
     - **Detection Sensitivity** affects how many audio events are detected
     """
     )

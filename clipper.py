@@ -14,6 +14,14 @@ import datetime
 from pathlib import Path
 from helper import *
 
+try:
+    from bundle_utils import get_ffmpeg_path
+
+    FFMPEG_CMD = get_ffmpeg_path()
+except ImportError:
+    # Running in development environment
+    FFMPEG_CMD = "ffmpeg"
+
 # Define output directory at the same level as this script
 OUTPUT_DIR = Path(__file__).parent / "output"
 TMP_CONCAT_FILE = "__tmp_concat__.txt"
@@ -196,6 +204,7 @@ def process_video(
             keyframes,
             prefix=output_prefix,
             buffer=buffer,
+            clip_ids=points_df.index.tolist(),
         )
         if reverse_clips:
             segment_files = segment_files[::-1]
@@ -322,7 +331,7 @@ def concat_clips(files, output_file):
 
         # Concatenate the segments
         concat_cmd = [
-            "ffmpeg",
+            FFMPEG_CMD,
             "-f",
             "concat",
             "-safe",
@@ -354,13 +363,16 @@ def get_keyframes(video_file):
     return keyframes
 
 
-def create_clips(video_file, points, keyframes, prefix="clip", buffer=1):
+def create_clips(video_file, points, keyframes, prefix="clip", buffer=1, clip_ids=None):
     segment_files = []
     file_type = video_file.split(".")[-1]
     for i, (start, end) in enumerate(points):
         start = max(0, start - buffer)
         end += buffer
-        segment_file = OUTPUT_DIR / f"{prefix}_{i}.{file_type}"
+        if clip_ids is not None:
+            segment_file = OUTPUT_DIR / f"{prefix}_{clip_ids[i]}.{file_type}"
+        else:
+            segment_file = OUTPUT_DIR / f"{prefix}_{i}.{file_type}"
 
         # Get closest keyframe before start
         # Otherwise, would need to re-encode, which is very slow
@@ -370,7 +382,7 @@ def create_clips(video_file, points, keyframes, prefix="clip", buffer=1):
         start = keyframes[start_keyframe]
 
         cmd = [
-            "ffmpeg",
+            FFMPEG_CMD,
             "-loglevel",
             "error",
             "-ss",
