@@ -12,6 +12,8 @@ from dataclasses import dataclass
 # Import the clipper functions directly
 from clipper import process_video
 
+OUTPUT_DIR = Path("ett_clipper_output")
+
 
 @dataclass
 class ClipperConfig:
@@ -34,19 +36,17 @@ class ClipperConfig:
 
 def open_output_folder():
     """Open the output folder in the system file browser."""
-    output_dir = Path("output")
-
     # Create output directory if it doesn't exist
-    output_dir.mkdir(exist_ok=True)
+    OUTPUT_DIR.mkdir(exist_ok=True)
 
     # Open folder based on operating system
     try:
         if platform.system() == "Windows":
-            os.startfile(str(output_dir.absolute()))
+            os.startfile(str(OUTPUT_DIR.absolute()))
         elif platform.system() == "Darwin":  # macOS
-            subprocess.run(["open", str(output_dir.absolute())])
+            subprocess.run(["open", str(OUTPUT_DIR.absolute())])
         else:  # Linux and other Unix-like systems
-            subprocess.run(["xdg-open", str(output_dir.absolute())])
+            subprocess.run(["xdg-open", str(OUTPUT_DIR.absolute())])
     except Exception:
         # Silently fail - user will notice if folder doesn't open
         pass
@@ -66,13 +66,13 @@ def get_generated_clips(output_prefix: str = "clips") -> List[Tuple[str, str]]:
     clip_files = []
 
     # First, add the compiled video if it exists (should appear first)
-    compiled_video = f"output/{output_prefix}.mp4"
+    compiled_video = f"{OUTPUT_DIR}/{output_prefix}.mp4"
     if os.path.exists(compiled_video):
         filename = os.path.basename(compiled_video)
         clip_files.append((compiled_video, filename))
 
     # Then add individual clip files (clips_0.mp4, clips_1.mp4, etc.)
-    pattern = f"output/{output_prefix}_*.mp4"
+    pattern = f"{OUTPUT_DIR}/{output_prefix}_*.mp4"
     for file_path in sorted(glob.glob(pattern)):
         filename = os.path.basename(file_path)
         clip_files.append((file_path, filename))
@@ -233,7 +233,7 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
     """
     )
     gr.Markdown("# 🎥 Eleven Table Tennis Video Clipper")
-    gr.Markdown("Upload an MP4 video file to extract clips based on audio events with full parameter control.")
+    gr.Markdown("Upload a video file to extract clips based on audio events with full parameter control.")
 
     with gr.Row():
         with gr.Column(scale=2):

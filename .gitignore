@@ -6,4 +6,8 @@ data/onsets/*
 myenv
 /*.mp4
 model.pkl
-output/
+/ett_clipper_output/
+ffmpeg.exe
+ffprobe.exe
+/build/
+/dist/

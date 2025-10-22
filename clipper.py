@@ -1,14 +1,11 @@
-import os
+import sys, os
 import av
 import glob
 import pickle
 import bisect
 import argparse
 import subprocess
-import librosa
-import soundfile as sf
 import pandas as pd
-import numpy as np
 import time
 import datetime
 from pathlib import Path
@@ -23,7 +20,12 @@ except ImportError:
     FFMPEG_CMD = "ffmpeg"
 
 # Define output directory at the same level as this script
-OUTPUT_DIR = Path(__file__).parent / "output"
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).parent
+else:
+    BASE_DIR = Path(__file__).parent
+OUTPUT_DIR = BASE_DIR / "ett_clipper_output"
+
 TMP_CONCAT_FILE = "__tmp_concat__.txt"
 
 argparser = argparse.ArgumentParser(description="Extract clips of ETT points from video based on sounds.")
@@ -366,13 +368,21 @@ def get_keyframes(video_file):
 def create_clips(video_file, points, keyframes, prefix="clip", buffer=1, clip_ids=None):
     segment_files = []
     file_type = video_file.split(".")[-1]
+
+    # Determine padding width based on total number of clips
+    if clip_ids is not None:
+        max_id = max(clip_ids) if clip_ids else 0
+        padding = len(str(max_id))
+    else:
+        padding = len(str(len(points) - 1))
+
     for i, (start, end) in enumerate(points):
         start = max(0, start - buffer)
         end += buffer
         if clip_ids is not None:
-            segment_file = OUTPUT_DIR / f"{prefix}_{clip_ids[i]}.{file_type}"
+            segment_file = OUTPUT_DIR / f"{prefix}_{str(clip_ids[i]).zfill(padding)}.{file_type}"
         else:
-            segment_file = OUTPUT_DIR / f"{prefix}_{i}.{file_type}"
+            segment_file = OUTPUT_DIR / f"{prefix}_{str(i).zfill(padding)}.{file_type}"
 
         # Get closest keyframe before start
         # Otherwise, would need to re-encode, which is very slow

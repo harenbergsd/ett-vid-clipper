@@ -20,6 +20,10 @@ There are a number of options you can use to affect the behavior discussed below
 
 ## Installation
 
+Windows users do not need to do any installation. An EXE release is provided. This EXE has pre-packaged all the necessary binaries to run the application.
+
+If you cannot or do not want to use the provided EXE, follow the instructions below.
+
 ### Python Dependencies
 
 Install Python 3 first.
@@ -69,6 +73,8 @@ uv run webui.py
 ```
 
 This should launch the WebUI in your browser automatically. If not, open your browser and go to `http://localhost:7860`.
+
+![image](./data/ex_gui.png)
 
 ### Command Line Interface
 
@@ -128,3 +134,8 @@ Next, you run `train.py` to train the model, which will produce the `model.pkl` 
 ## Other notes
 
 - Re-encoding the video kills the runtime. This is why we find the nearest keyframe to the starting timestamp of a clip. Generating video clips is free if you don't have to re-encode, but that requires having enough keyframes to where you don't need to do it. AI led me astray trying to re-encode small pieces and stitch them together, but that route never panned out :). I think it's basically re-encode everything or nothing, and everything will be painful.
+
+### How to Build Windows EXE
+- Download ffmpeg and ffprobe binaries, which you can do here: https://www.gyan.dev/ffmpeg/builds/
+    - Keep these in the base directory
+- On windows, run `uv run pyinstaller webui.spec`
