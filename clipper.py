@@ -28,6 +28,50 @@ OUTPUT_DIR = BASE_DIR / "ett_clipper_output"
 
 TMP_CONCAT_FILE = "__tmp_concat__.txt"
 
+
+def parse_time(time_str):
+    """
+    Parse time string in format MM:SS or HH:MM:SS to seconds.
+
+    Args:
+        time_str: Time string like "10:30" or "1:10:30"
+
+    Returns:
+        int: Total seconds
+
+    Examples:
+        "90" -> 90 (plain seconds still supported)
+        "10:30" -> 630 (10 minutes 30 seconds)
+        "1:10:30" -> 4230 (1 hour 10 minutes 30 seconds)
+    """
+    if time_str is None:
+        return None
+
+    time_str = str(time_str).strip()
+    
+    # Handle empty string
+    if not time_str:
+        return None
+
+    # If it's just a number, treat as seconds
+    if ":" not in time_str:
+        return int(time_str)
+
+    # Split by colons
+    parts = time_str.split(":")
+
+    if len(parts) == 2:
+        # MM:SS format
+        minutes, seconds = parts
+        return int(minutes) * 60 + int(seconds)
+    elif len(parts) == 3:
+        # HH:MM:SS format
+        hours, minutes, seconds = parts
+        return int(hours) * 3600 + int(minutes) * 60 + int(seconds)
+    else:
+        raise ValueError(f"Invalid time format: {time_str}. Use MM:SS or HH:MM:SS")
+
+
 argparser = argparse.ArgumentParser(description="Extract clips of ETT points from video based on sounds.")
 argparser.add_argument("video_file", help="Path to the video file.")
 argparser.add_argument(
@@ -64,9 +108,15 @@ argparser.add_argument(
 )
 argparser.add_argument(
     "--starttime",
-    type=int,
-    default=0,
-    help="seconds from the start of the video to start extracting clips",
+    type=str,
+    default="0",
+    help="time to start extracting clips (formats: seconds, MM:SS, or HH:MM:SS)",
+)
+argparser.add_argument(
+    "--endtime",
+    type=str,
+    default=None,
+    help="time to stop extracting clips (formats: seconds, MM:SS, or HH:MM:SS)",
 )
 argparser.add_argument(
     "--reverse-clips",
@@ -109,6 +159,7 @@ def process_video(
     sort_by="chrono",
     max_clips=None,
     start_time=0,
+    end_time=None,
     skip_clips=None,
     skip_clips_min_shots=0,
     reverse_clips=False,
@@ -127,6 +178,7 @@ def process_video(
         sort_by: How to sort clips ("chrono", "shots", "duration")
         max_clips: Maximum number of clips to extract
         start_time: Start processing from this time (seconds)
+        end_time: Stop processing at this time (seconds)
         skip_clips: List of clip indices to skip
         skip_clips_min_shots: Minimum shots required for a clip
         reverse_clips: Reverse the order of clips
@@ -144,7 +196,7 @@ def process_video(
 
     output_messages = []
 
-    timestamps = detect_hits(video_file, start_time=start_time, delta=detection_sensitivity)
+    timestamps = detect_hits(video_file, start_time=start_time, end_time=end_time, delta=detection_sensitivity)
     points_df = get_points(timestamps, max_time_diff=max_time_diff)
 
     # Do any sorting or limiting of the clips
@@ -233,7 +285,8 @@ def main():
         output_prefix=args.outname,
         sort_by=args.orderby,
         max_clips=args.nclips,
-        start_time=args.starttime,
+        start_time=parse_time(args.starttime),
+        end_time=parse_time(args.endtime),
         skip_clips=args.skip_clips,
         skip_clips_min_shots=args.skip_clips_min_shots,
         reverse_clips=args.reverse_clips,
@@ -246,7 +299,7 @@ def main():
         print(msg)
 
 
-def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
+def detect_hits(video_file, start_time=0, end_time=None, hop_length=32, delta=0.02):
     hits = []
     model_path = str(Path(__file__).parent / "model.pkl")
     backup_model_path = str(Path(__file__).parent / "model_orig.pkl")
@@ -264,10 +317,10 @@ def detect_hits(video_file, start_time=0, hop_length=32, delta=0.02):
         except FileNotFoundError:
             raise FileNotFoundError(f"Neither model.pkl nor model_orig.pkl found in {Path(__file__).parent}")
     for iter, (sr, audio, offset, end) in enumerate(
-        extract_audio_from_video(video_file, start_time=start_time, chunk_size=1000)
+        extract_audio_from_video(video_file, start_time=start_time, end_time=end_time, chunk_size=1000)
     ):
-        dtoffset = datetime.timedelta(seconds=offset)
-        dtend = datetime.timedelta(seconds=end)
+        dtoffset = datetime.timedelta(seconds=int(offset))
+        dtend = datetime.timedelta(seconds=int(end))
         print(f"Processing chunk {iter+1}, start={dtoffset}, end={dtend} ... ", end="", flush=True)
         st = time.time()
 

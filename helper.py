@@ -11,6 +11,8 @@ TMP_AUDIO_FILE = "__tmp__.wav"
 def onset_clip(audio, sr, onset, duration=0.1):
     start = int(onset * sr)
     end = int((onset + duration) * sr)
+    # Ensure we don't go beyond the audio array bounds
+    end = min(end, len(audio))
     return audio[start:end]
 
 
@@ -36,7 +38,7 @@ def features(audio, sr):
     return np.concatenate([mfcc_max, delta_max, delta2_max], axis=0)
 
 
-def extract_audio_from_video(video_file, start_time=0, chunk_size=600):
+def extract_audio_from_video(video_file, start_time=0, end_time=None, chunk_size=600):
     try:
         subprocess.run(
             [
@@ -54,7 +56,8 @@ def extract_audio_from_video(video_file, start_time=0, chunk_size=600):
             ]
         )
         # Split up due to memory issues on large audio files
-        total_duration = librosa.get_duration(path=TMP_AUDIO_FILE)
+        # Use end_time if specified, otherwise get the full duration
+        total_duration = end_time if end_time is not None else librosa.get_duration(path=TMP_AUDIO_FILE)
         nchunks = math.ceil((total_duration - start_time) / chunk_size)
         chunks = np.array_split(np.arange(start_time, total_duration), nchunks)
         chunks = [(c[0], c[-1] + 1) for c in chunks]

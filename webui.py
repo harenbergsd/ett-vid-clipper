@@ -10,7 +10,7 @@ from typing import Optional, Tuple, List
 from dataclasses import dataclass
 
 # Import the clipper functions directly
-from clipper import process_video
+from clipper import process_video, parse_time
 
 OUTPUT_DIR = Path("ett_clipper_output")
 
@@ -26,7 +26,8 @@ class ClipperConfig:
     output_prefix: str = "clips"
     sort_by: str = "chrono"
     max_clips: Optional[int] = None
-    start_time: int = 0
+    start_time: str = "0"
+    end_time: Optional[str] = None
     skip_clips_text: str = ""
     skip_clips_min_shots: int = 0
     reverse_order: bool = False
@@ -116,7 +117,8 @@ def process_video_direct(config: ClipperConfig) -> Tuple[str, List[Tuple[str, st
             output_prefix=config.output_prefix,
             sort_by=config.sort_by,
             max_clips=config.max_clips,
-            start_time=config.start_time,
+            start_time=parse_time(config.start_time),
+            end_time=parse_time(config.end_time),
             skip_clips=skip_clips,
             skip_clips_min_shots=config.skip_clips_min_shots,
             reverse_clips=config.reverse_order,
@@ -190,6 +192,7 @@ def gradio_interface(
     sort_by,
     max_clips,
     start_time,
+    end_time,
     skip_clips_text,
     skip_clips_min_shots,
     reverse_order,
@@ -208,6 +211,7 @@ def gradio_interface(
         sort_by=sort_by,
         max_clips=max_clips,
         start_time=start_time,
+        end_time=end_time,
         skip_clips_text=skip_clips_text,
         skip_clips_min_shots=skip_clips_min_shots,
         reverse_order=reverse_order,
@@ -272,6 +276,20 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
                             info="Filter out clips with fewer than this many shots (0 = no filtering)",
                         )
 
+                    with gr.Row():
+                        start_time = gr.Textbox(
+                            label="Start Time",
+                            value="0",
+                            placeholder="0 or 10:30 or 1:10:30",
+                            info="Start time (formats: seconds, MM:SS, or HH:MM:SS)",
+                        )
+                        end_time = gr.Textbox(
+                            label="End Time",
+                            value="",
+                            placeholder="Leave empty or 13:00 or 1:13:00",
+                            info="End time (formats: seconds, MM:SS, or HH:MM:SS)",
+                        )
+
                     output_prefix = gr.Textbox(
                         label="Output Prefix", value="clips", placeholder="clips", info="Prefix for output files"
                     )
@@ -280,14 +298,6 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
             with gr.Accordion("🔧 Advanced Settings", open=False):
                 with gr.Group():
                     with gr.Row():
-                        start_time = gr.Slider(
-                            label="Start Time",
-                            minimum=0,
-                            maximum=3600,
-                            value=0,
-                            step=1,
-                            info="Start processing from this time (seconds)",
-                        )
                         output_csv = gr.Checkbox(label="Export CSV", value=False, info="Export timestamps to CSV file")
                         create_clips = gr.Checkbox(
                             label="Create Video Clips", value=True, info="Create video clips and combined video"
@@ -359,6 +369,7 @@ with gr.Blocks(title="Eleven Table Tennis Video Clipper", theme=gr.themes.Soft()
         sort_by,
         max_clips,
         start_time,
+        end_time,
         skip_clips_text,
         skip_clips_min_shots,
         reverse_order,
