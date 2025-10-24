@@ -1,9 +1,11 @@
 import subprocess
 import librosa
 import os
+import sys
 import math
 import numpy as np
 from scipy.signal import find_peaks
+from pathlib import Path
 
 TMP_AUDIO_FILE = "__tmp__.wav"
 
@@ -39,10 +41,13 @@ def features(audio, sr):
 
 
 def extract_audio_from_video(video_file, start_time=0, end_time=None, chunk_size=600):
+    # Get the appropriate ffmpeg command
+    ffmpeg_cmd = get_ffmpeg_path()
+
     try:
         subprocess.run(
             [
-                "ffmpeg",
+                ffmpeg_cmd,
                 "-loglevel",
                 "error",  # Suppress ffmpeg
                 "-i",
@@ -73,3 +78,61 @@ def extract_audio_from_video(video_file, start_time=0, end_time=None, chunk_size
     finally:
         if os.path.exists(TMP_AUDIO_FILE):
             os.remove(TMP_AUDIO_FILE)
+
+
+def get_resource_path(relative_path):
+    """
+    Get the absolute path to a resource, works for dev and for PyInstaller.
+
+    Args:
+        relative_path: Path relative to the application directory
+
+    Returns:
+        Absolute path to the resource
+    """
+    if getattr(sys, "frozen", False):
+        # Running as compiled executable
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        if hasattr(sys, "_MEIPASS"):
+            base_path = Path(sys._MEIPASS)
+        else:
+            base_path = Path(sys.executable).parent
+    else:
+        # Running in development
+        base_path = Path(__file__).parent
+
+    return str(base_path / relative_path)
+
+
+def get_ffmpeg_path():
+    """
+    Get the path to ffmpeg executable.
+    When running as a bundle, looks for ffmpeg.exe in the temp extraction folder.
+    When running in development, returns 'ffmpeg' to use system PATH.
+
+    Returns:
+        Path to ffmpeg executable
+    """
+    if getattr(sys, "frozen", False):
+        # Running as compiled executable - look for ffmpeg.exe in temp folder
+        return get_resource_path("ffmpeg.exe")
+    else:
+        # Running in development - use system ffmpeg
+        return "ffmpeg"
+
+
+def get_ffprobe_path():
+    """
+    Get the path to ffprobe executable.
+    When running as a bundle, looks for ffprobe.exe in the temp extraction folder.
+    When running in development, returns 'ffprobe' to use system PATH.
+
+    Returns:
+        Path to ffprobe executable
+    """
+    if getattr(sys, "frozen", False):
+        # Running as compiled executable - look for ffprobe.exe in temp folder
+        return get_resource_path("ffprobe.exe")
+    else:
+        # Running in development - use system ffprobe
+        return "ffprobe"

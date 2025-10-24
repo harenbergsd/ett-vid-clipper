@@ -11,13 +11,8 @@ import datetime
 from pathlib import Path
 from helper import *
 
-try:
-    from bundle_utils import get_ffmpeg_path
-
-    FFMPEG_CMD = get_ffmpeg_path()
-except ImportError:
-    # Running in development environment
-    FFMPEG_CMD = "ffmpeg"
+# Get ffmpeg path - works for both development and bundled exe
+FFMPEG_CMD = get_ffmpeg_path()
 
 # Define output directory at the same level as this script
 if getattr(sys, "frozen", False):
@@ -48,7 +43,7 @@ def parse_time(time_str):
         return None
 
     time_str = str(time_str).strip()
-    
+
     # Handle empty string
     if not time_str:
         return None

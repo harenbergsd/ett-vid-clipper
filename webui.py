@@ -11,6 +11,11 @@ from dataclasses import dataclass
 
 # Import the clipper functions directly
 from clipper import process_video, parse_time
+from helper import get_ffmpeg_path, get_ffprobe_path
+
+# Get ffmpeg/ffprobe paths - works for both development and bundled exe
+FFMPEG_CMD = get_ffmpeg_path()
+FFPROBE_CMD = get_ffprobe_path()
 
 OUTPUT_DIR = Path("ett_clipper_output")
 
@@ -142,7 +147,7 @@ def process_video_direct(config: ClipperConfig) -> Tuple[str, List[Tuple[str, st
 def get_format(video_path):
     try:
         result = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=format_name", "-of", "json", video_path],
+            [FFPROBE_CMD, "-v", "error", "-show_entries", "format=format_name", "-of", "json", video_path],
             capture_output=True,
             text=True,
             check=True,
@@ -158,7 +163,7 @@ def fix_moov_if_needed(video_path):
     # This fixes some issues where gradio cannot play some MP4 files due to moov atom placement
     fixed_path = os.path.join(tempfile.gettempdir(), "fixed.mp4")
     cmd = [
-        "ffmpeg",
+        FFMPEG_CMD,
         "-y",
         "-fflags",
         "+genpts",
